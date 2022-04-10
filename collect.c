@@ -2,8 +2,6 @@
  * Collect various pieces of randomness
  */
 
-static char rcsid[] = "$Header: /home/sater/bridge/bigdeal/RCS/collect.c,v 1.7 2000/08/25 15:55:26 sater Exp $";
-
 #include "types.h"
 #include "rmd160.h"
 #include "bigdeal.h"

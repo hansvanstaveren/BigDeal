@@ -1,10 +1,9 @@
 
-static char rcsid[] = "$Header: /home/sater/bridge/bigdeal/RCS/unix.c,v 1.11 2000/08/25 15:55:53 sater Exp $";
-
 #include <sys/termios.h>
 #include <sys/time.h>
 #include <ctype.h>
 #include <stdio.h>
+#include <string.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
 #include "types.h"

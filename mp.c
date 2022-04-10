@@ -2,8 +2,6 @@
 #include "bigdeal.h"
 #include <memory.h>
 
-static char rcsid[] = "$Header: /home/sater/bridge/bigdeal/RCS/mp.c,v 1.10 2000/08/16 15:06:05 sater Exp $";
-
 /*
  * Multiple precision arithmetic
  * Format is 12 byte number( 96 bits), with lowest byte most significant

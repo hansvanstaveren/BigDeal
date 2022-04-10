@@ -5,8 +5,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-static char rcsid[] = "$Header: /home/sater/bridge/bigdeal/RCS/output.c,v 1.20 2000/09/08 06:01:46 sater Exp $";
-
 /*
  * Next type is a tagged union to prevent compilers complaining
  * Should check on tag
