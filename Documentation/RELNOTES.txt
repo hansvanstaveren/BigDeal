@@ -1,0 +1,45 @@
+RELEASE NOTES BIG DEAL
+
+Version 1.2, September 8, 2012
+
+The program was recompiled for a Windows instead of a DOS environment. It is still a command line application.
+It runs on old and new machines, on 32-bit and 64-bit OSes.
+
+No visible changes were made to the program. It is fine as it is...
+
+===================================================================================================
+
+Version 1.1, September 8, 2000
+
+Visible changes from version 1.0
+
+- During the init dialog an empty answer was misinterpreted. Fixed.
+- The format of the .INI file generated was changed, to aid Windows frontends.
+- The bigdealx program did not terminate a string properly. Fixed.
+  This means that the 1.1 version will complain about the contents of the dealentr.txt from 1.0
+- and formats!!
+
+Changed formats in 1.1
+
+- The PBN format now has no Event tag, but a Generator tag
+- The DUP format acquired a "header" after hand 1. This is more like the Jannersten version
+- There is now also a DUPBLIND format, which does not show the hands on screen
+- The internal GOEDEL format(only in bigdealx) now prints out the 29 digit decimal number
+
+New formats in 1.1
+
+- The DLM and DLMBLIND formats, for Jannersten Windup. Late addition, had limited testing.
+  But Windup accepts the files, which was good enough for this release.
+- The CSV format, for database imports, or wordprocessor macros.
+
+No changes were made to the dealing guts of the program.
+
+===================================================================================================
+
+Version 1.0, August 21, 2000
+
+Initial release to be used at Olympiad, Maastricht
+
+Included BRI, DGE, DUP, PBN, BOREL and BER formats, plus
+in bigdealx version GOEDEL and STATS
+

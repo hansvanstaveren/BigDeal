@@ -1,0 +1,234 @@
+\documentstyle[11pt]{letter}
+\begin{document}
+
+The computer program Big Deal uses a one-to-one correspondence
+between numbers and bridge-deals, i.e. each possible bridge-deal
+receives its own 'personal identification' number. It uses a
+random number generator to produce such an identification number,
+which is then converted into a bridge-deal. The conversion from
+a given number to its corresponding bridge-deal is handled by the
+procedure 'code-to-hand' in the program. This note will explain
+the mechanism of this procedure.
+
+Let $G$ denote the total number of possible bridge-deals (one
+can show that $G = {52\choose 13}{39\choose 13}{26\choose 13}$).
+There are of course numerous ways to establish a one-to-one
+correspondence between all possible bridge-deals and the numbers
+0 to $G-1$, so we will start explaining the particular choice
+that was made for Big Deal.
+
+First, numbers are assigned to the cards. This was done as follows:
+Ace of Spades gets number~1, King of Spades is number 2, and so on.
+After the Spades are numbered, it is the turn of the Hearts, then
+Diamonds and finally Clubs. Two of Clubs is therefore the last card
+in the sequence and it has number 52.
+
+Let us now look at a possible hand for North. Reading the card numbers
+from low to high, we see that this hand
+corresponds to a strictly increasing sequence of 13 numbers,
+where the numbers are taken from the set $\{1,2,\ldots,52\}$.
+For mathematical convenience, we wish to make a slight
+modification to this observation: if, in this strictly
+increasing sequence, we subtract $i$ from the $i$-th number,
+we obtain a non-decreasing sequence of 13 numbers, where
+the numbers are taken from the set $\{0,1,\ldots,39\}$. We
+conclude that there is a one-to-one correspondence between
+the hands for North and the non-decreasing number sequences of
+length 13, where the numbers are taken from $\{0,1,\ldots,39\}$.
+
+Now, knowing North's hand, we turn to East and we wonder if we
+can find a one-to-one correspondence between the possible hands
+for East and number sequences, similar to the way we did for
+North. Of course, one can still argue that East's hand can be
+recovered from a non-decreasing number sequences of length 13,
+with numbers taken from $\{0,1,\ldots,39\}$. This is true, but
+we do not obtain a one-to-one correspondence in this way. To
+this end, number the remaining cards (the cards that are not in
+North's hand) from 1 to 39. We see that the cards in East's hand
+correspond to a strictly increasing number sequence of length 13,
+where the numbers are taken from the set $\{1,2,\ldots,39\}$.
+Again, we prefer to have a slightly modified representation.
+In this strictly increasing sequence we subtract $i$ from the
+$i$-th number, thus obtaining a non-decreasing sequence of 13
+numbers, where the numbers are taken from the set $\{0,1,\ldots,26\}$.
+We conclude that there is a one-to-one correspondence between
+the hands for North and the non-decreasing number sequences of
+length 13, where the numbers are taken from $\{0,1,\ldots,26\}$.
+
+Knowing both North's and East's hand, there is a one-to-one
+correspondence between the possible hands for South and the
+non-decreasing number sequences of length 13, where the
+numbers are taken from $\{0,1,\ldots,13\}$. Finally, if the
+hands of North, East and South are known, then also
+West's hand is known, so no coding is needed for West.
+
+So, we can represent any bridge-deal in a unique way by a
+non-decreasing number sequence of length 13 with numbers
+from $\{0,\ldots,39\}$, followed by a non-decreasing sequence
+of length 13 with numbers from $\{0,\ldots,26\}$, terminated
+by a non-decreasing sequence of length 13 with numbers from
+$\{0,\ldots,13\}$. Let us refer to such a sequence as a
+{\it bridge-sequence}. The representation of bridge-deals
+by bridge-sequences suggests the following ordering of the
+possible bridge-deals. The bridge-deal corresponding to the
+sequence consisting of 39 zeros is first in this ordering.
+The sequence consisting of 13 times 39, followed by 13 times
+26, and terminated by 13 times 13 is last in this ordering.
+For any bridge-sequence, unequal to the last one, say
+$a_0,\ldots,a_{12},b_0,\ldots,b_{12},c_0,\ldots,c_{12}$,
+we construct its {\it successor} as follows. Search for the
+right-most number in the sequence that is not at its maximum
+(i.e. less than 39 for one of the numbers $a_i$, less than
+26 for one of the number $b_i$ or less than 13 for one of
+the numbers $c_i$). Let us denote this element of the sequence
+by $x_\ell$, where $x$ stands for one the letters $a,b,c$ and
+$\ell\in \{0,\ldots,12\}$. The number $x_\ell$ is increased
+by~1. The numbers left from it remain unchanged, and the numbers
+right from it are set to the lowest possible value that still
+results in a valid bridge-sequence: the number $y_k$ is set
+to $x_\ell + 1$ if the letter $y$ (seen as a variable taken from
+the set $\{a,b,c\}$) equals the letter $x$, and if $k>\ell$. It
+is set to zero if the letter $y$ is lexicographically greater than
+$x$. This works much like a kilometer counter. The differences
+with a normal kilometer counter are only to ensure that the
+successor of any bridge-sequence is again a valid bridge-sequence.
+Starting at the zero-sequence and incrementing in the way prescribed
+above, our kilometer counter will reach any given bridge-sequence.
+It is now clear how we intend to assign numbers to the bridge-sequences.
+The zero-sequence is assigned~0, its successor is assigned~1, etc. Let
+us call this number the G\"odel number of a bridge-sequence.
+
+It turns out that an explicit formula can be given for
+the G\"odel number of a bridge-sequence. For the bridge-sequence
+$s := (a_0,\ldots,a_{12},b_0,\ldots,b_{12},c_0,\ldots,c_{12})$,
+define
+$$ \displaystyle
+G(s) =  {39 \choose 13} {26 \choose 13} G^a(s)
+ +  {26 \choose 13} G^b(s)
+ + G^c(s), $$
+where
+$$G^a(s) =
+\displaystyle \sum_{j=0}^{12} ({{52-a_{j-1} - j} \choose {13-j}} - {{52-a_j-j} \choose
+{13-j}}), $$
+$$G^b(s) =
+\displaystyle \sum_{j=0}^{12} ({{39-b_{j-1} - j} \choose {13-j}} - {{39-b_j-j} \choose
+{13-j}}), $$ and
+$$G^c(s) =
+\displaystyle \sum_{j=0}^{12} ({{26-c_{j-1} - j} \choose {13-j}} - {{26-c_j-j} \choose
+{13-j}}). $$
+In these formulae we should read $a_{-1} = 0$, $b_{-1} = 0$ and $c_{-1} = 0$.
+We claim that $G(s)$ is the G\"odel number of $s$. This claim is trivially true
+for the zero-sequence. Now it suffices to prove that $G(s^\prime) = G(s) + 1$
+whenever $s^\prime$ is the successor of $s$.
+
+Let $x_\ell$ denote the right-most number in the sequence $s$ that is not maximal.
+Let us assume for the moment that the variable letter $x$ stands for the letter
+$a$. Then $G^b(s^\prime) = G^c(s^\prime) = 0$, since the last 26 numbers in the
+$s^\prime$-sequence are 0. Further, we have $G^b(s) = {39\choose 13} - 1$
+and $G^c(s) = {26\choose 13} - 1$, since the last 26 numbers in the
+$s$-sequence are all maximal. Finally, note that
+$$\begin{array}{lll}
+G^a(s^\prime) - G^a(s) & = &
+\displaystyle - {52-a_{\ell-1}-\ell \choose 13-\ell}
++ {52-a_\ell-\ell \choose 13-\ell} \\
+& & \displaystyle - {52-a_{\ell-2}-\ell + 1 \choose 13-\ell + 1}
++ {52-a_{\ell-1}-\ell + 1 \choose 13-\ell + 1} \\
+& & \displaystyle + {52-a_{\ell-2}-\ell + 1 \choose 13-\ell + 1}
+- {52-a_{\ell-1}-\ell \choose 13-\ell + 1} \\
+& = & 1. \end{array} $$
+We conclude that indeed
+$$G(s^\prime) = G(s) + {39\choose 13}{26\choose 13} - {26\choose 13}({39\choose 13} - 1)
+- ({26\choose 13} - 1) = G(s) + 1.$$
+The proof that $G(s^\prime) = G(s) + 1$ is similar when the right-most element
+that is not maximal is positioned in the $b$-block or the $c$-block, instead
+of the $a$-block.
+
+The procedure 'code-to-hand' in the program Big Deal converts a given G\"odel
+number to its associated bridge-sequence. The pseudo-code for computing the
+first 13 elements in the bridge-sequence is given below. \vspace*{10mm}
+
+{\bf Input:} A (G\"odel) number $g\in\{0,1,\ldots,G-1\}$.
+\begin{tabbing}
+bb\=bb\=bb\=bb\=bb \kill \\
+$a_{-1} := 0;$ \\
+$g_{-1} := g;$ \\
+{\bf for} $j := 0$ {\bf to} 12 {\bf do} \\
+{\bf begin} \\
+\>
+$a_j :=\displaystyle  \max\{a \mid
+{39\choose 13} {26\choose 13} ({52-a_{j-1}-j \choose 13-j} - {52-a-j \choose
+13-j}) \leq g_{j-1} \};$ \\
+\>
+$x_j := \displaystyle
+{39\choose 13} {26\choose 13} ({52-a_{j-1}-j \choose 13-j} - {52-a_j-j \choose
+13-j});$ \\
+\> $g_j := g_{j-1} - x_j;$\\
+{\bf end};
+\end{tabbing}
+
+In order to show that this code correctly computes the first
+13 elements of the bridge-sequence associated with $g$, we
+will prove by induction that $$0\leq a_{j-1} \leq a_j \leq 39$$
+for all $j\in\{0,\ldots,12\}$. We will also prove that
+$$g_j + \sum_{i=0}^j x_i = g$$ for all $j\in \{-1,0,\ldots,12\}$,
+and that $$\displaystyle 0\leq g_j < {39\choose 13}{26\choose 13}
+({52-a_j-j\choose 13-j} - {52-a_j-1-j\choose 13-j})$$
+for all $j\in \{-1,0,\ldots,12\}$.
+
+For $j=-1$, the second claim is trivially true.
+For $j=-1$, the third claim states that
+$g_{-1} < {39\choose 13}{26\choose 13} ({53\choose 14} - {52\choose 14})$.
+Note that ${53\choose 14} - {52\choose 14} = {52\choose 13}$, hence this
+claim is equivalent to $g_{-1} < G$, which is also trivially true.
+
+Now, let $j\geq 0$ and assume that the second and third claim are true for
+$j-1$. We will show that all three claims are true for $j$.
+Note that the inequality
+$$ {39\choose 13} {26\choose 13} ({52-a_{j-1} - j
+\choose 13-j} - {52-a-j) \choose 13-j}) \leq g^{j-1}$$ is satisfied for
+$a = a_{j-1}$, hence $a_j\geq a_{j-1}$. From the fact that the third
+claim is true for $j-1$, it follows that this equality is violated
+for all $a>39$. Hence, the number $a_j$ is well-defined, and it satisfies
+$0\leq a_{j-1} \leq a_j \leq 39$, i.e. the first claim is true for $j$.
+
+The proof that the second claim is true for $j$ follows trivially
+by combining $g_j = g_{j-1} - x_j$ and $g_{j-1} + \sum_{i=0}^{j-1} x_i = g$.
+
+It follows from the definition of $a_j$ that
+$${39\choose 13}{26\choose 13} ({52-a_{j-1}-j\choose 13-j} -
+{52-a_j-1-j)\choose 13-j}) > g_{j-1}.$$
+Using this inequality we obtain
+$$g_j = g_{j-1} - x_j <
+{39\choose 13}{26\choose 13}
+({52-a_j-j\choose 13-j} - {52-a_j-1-j\choose 13-j}),$$
+and we see that also the third claim is true for $j$.
+
+The computation of the next 13 elements in the bridge-sequence can be done by
+similar code. The input-number for this second part is the value $g_{12}$
+computed in the first part. Similarly, one can show that this will produce a
+non-decreasing sequence $b_0,\ldots,b_{12}$ with elements from
+$\{0,\ldots,26\}$, Numbers $g_{13},\ldots,g_{25}$ and $x_{13},\ldots,x_{25}$
+will be generated satisfying $$\displaystyle 0\leq g_{j+13} < {26\choose 13}
+({39-b_j-j\choose 13-j} - {39-b_j-1-j\choose 13-j})$$ for all $j\in
+\{-1,0,\ldots,12\}$, and $$\displaystyle g_j + \sum_{i=0}^j x_i = g$$ for all
+$j\in \{-1,0,\ldots,25\}$.
+
+Finally, in the third part a non-decreasing sequence $c_0,\ldots,c_{12}$
+with elements from $\{0,\ldots,13\}$ is computed together with
+numbers $g_{26},\ldots,g_{38}$ and $x_{26},\ldots,x_{38}$ satisfying
+$$\displaystyle 0\leq g_{j+26} < ({26-c_j-j\choose 13-j} - {26-c_j-1-j\choose
+13-j})$$ for all $j\in \{-1,0,\ldots,12\}$, and
+$$\displaystyle g_j + \sum_{i=0}^j x_i = g$$ for
+all $j\in \{-1,0,\ldots,38\}$.
+
+The outcome of the whole procedure is therefore a valid bridge-sequence,
+say $s$. The G\"odel number of this bridge-sequence is easily seen to satisfy
+$$\displaystyle G(s) = \sum_{i=0}^{38} x_i.$$
+Applying the result $$\displaystyle g_j + \sum_{i=0}^j x_i = g$$ for
+$j = 38$, we obtain $$G(s) + g_{38} = g.$$ Applying the result
+$$\displaystyle 0\leq g_{j+26} < ({26-c_j-j\choose 13-j} - {26-c_j-1-j\choose
+13-j})$$ for $j = 12$, we obtain $$\displaystyle 0\leq g_{38} < {14-c_{12}\choose 1}
+- {13-c_{12}\choose 1} = 1,$$ hence $g_{38} = 0$. Therefore $G(s) = g$, and we see
+that we have actually computed the (unique) bridge-sequence with G\"odel number $g$.
+
+\end{document}
