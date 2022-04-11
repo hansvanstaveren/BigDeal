@@ -1,11 +1,12 @@
-
 #include <sys/termios.h>
 #include <sys/time.h>
+#include <fcntl.h>
 #include <ctype.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
+#include <stdlib.h>
 #include "types.h"
 #include "bigdeal.h"
 #include "collect.h"
@@ -92,11 +93,42 @@ getchtm(int *nbits)
 	return c;
 }
 
+#define DEVRANDOM	"/dev/urandom"
+#define DEVRANDSIZE	40		/* 40 bytes * 8 = 320 bits, way higher than the 160 bits plus ... */
+static int
+os_dev_random() {
+	int fd;
+	byte buf[DEVRANDSIZE];
+	int bytesread;
+
+	fd = open(DEVRANDOM, 0);
+	if (fd<0) {
+		return 0;
+	}
+	bytesread = read(fd, buf, DEVRANDSIZE);
+	if (bytesread != DEVRANDSIZE) {
+		return 0;
+	}
+	close(fd);
+	    
+	collect_more(buf, bytesread, 8*bytesread);
+	return 1;
+}
+
 void
-os_collect() {
+os_collect(char *hw_random) {
 	int pid;
 	struct timeval t;
 
+	if (hw_random) {
+		/* Hardware random device not implemened on Unix (yet) */
+		fprintf(stderr, "Device %s will not be read, not implemented\n", hw_random);
+		exit(-1);
+	}
+
+	if (os_dev_random()) {
+		return;
+	}
 	pid = getpid();
 	/* Trust about 8 bits of randomness in pid */
 	collect_more((byte *) &pid, sizeof(pid), 8);
@@ -159,7 +191,7 @@ legal_filename_prefix(char *s)
 
 	if (*s == 0)	/* Too short */
 		return 0;
-	if (strlen(s) > 10)	/* Worst case, System V */
+	if (strlen(s) > 100)	/* Worst case would be System V with 10, but should be dead by now */
 		return 0;
 	while (*s) {
 		if (*s == '/' || *s == ' ')	/* disallow space */
