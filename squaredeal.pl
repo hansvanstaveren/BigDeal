@@ -7,6 +7,10 @@ $suf = "sqd";
 $sufkey = "sqk";
 $bigdeal = "./bigdealx";
 
+$undefDI = "Tbd";
+$TrnName = "Not yet defined";
+$TrnNPhases = 0;
+
 $PrePublishMenu =<<'MENU';
 set tournament name
 %
@@ -54,12 +58,31 @@ make reserve session(s)
 %
 Actually makes the hands of the reserve sets of the specified sessions
 %
-makesession(promptfor("which reserve? Usually 1"));
+makesession(1);
 MENU
 
+sub isnumber {
+    my ($arg) = @_;
+
+    if ($arg =~ /^\d+$/) {
+	return 1;
+    }
+    return 0;
+}
 
 sub publish {
 
+    if ($TrnDelayedInfo eq $undefDI) {
+	print "Tournament Delayed Information has not been set, publishing not allowed\n";
+	return;
+    }
+    for my $ph (1..$TrnNPhases) {
+	my ($nses, $seslen, $sesfname, $sesdescr) = split /:/, $TrnPhaseName[$ph];
+	for my $s (1..$nses) {
+	    $skey{"$ph,$s"} = make_secret();
+	    # print "PU made key", $ph, $s, $skey{"$ph,$s"}, "\n";
+	}
+    }
     $TrnPublished = 1;
     $runon = 0;
     print "The tournament can now no longer be changed\n";
@@ -83,8 +106,8 @@ sub do_menu {
     }
     $runon = 1;
     print "For help on menu item 2 type ?2, etc\n";
-    print "To exit type 0\n\n";
     do {
+	print "0)\texit program\n";
 	for my $i (0..$#descr_ar) {
 	    print $i+1, ")\t$descr_ar[$i]\n";
 	}
@@ -140,6 +163,7 @@ sub make_secret {
 
 sub readkeys {
     my ($fname) = @_;
+    my ($hashval, $key);
 
     open(KEYFILE, "<:crlf", $fname) || return 0;
     my $wholefile = "";
@@ -160,7 +184,18 @@ sub readkeys {
 	print "Hashed key values  : $result\n";
 	die;
     }
-    print "Found keys for sessions: $hashlist\n";
+    # print "Found keys for sessions: $hashlist\n";
+    for my $ph (1..$TrnNPhases) {
+	my ($nses, $seslen, $sesfname, $sesdescr) = split /:/, $TrnPhaseName[$ph];
+	for my $s (1..$nses) {
+	    $hashval = "$ph,$s";
+	    if (!defined($skey{$hashval})) {
+		print "No key found for session $hashval\nFatal error, stop using these files !!!\n";
+		exit(-1);
+	    }
+	    # print "PU made key", $ph, $s, $skey{"$ph,$s"}, "\n";
+	}
+    }
     return 1;
 }
 
@@ -170,11 +205,13 @@ sub readtourn {
     open(TRNFILE, "<", $fname) || return 0;
     while(<TRNFILE>) {
 	chomp;
+	next if /^#/;
 	if(s/^TN *//) {
 	    $TrnName = $_;
 	}
 	if(s/^KH *//) {
 	    $TrnKeyHash = $_;
+	    $TrnPublished = 1;
 	}
 	if(s/^DI *//) {
 	    $TrnDelayedInfo = $_;
@@ -195,14 +232,19 @@ sub writetourn {
 
     copy $fname, "$fname.bak";
     open(TRNFILE, ">", $fname ) || die;
+    print TRNFILE "# Description file of tournament for program squaredeal\n#\n";
     print TRNFILE "TN $TrnName\n";
-    print TRNFILE "KH $TrnKeyHash\n";
     print TRNFILE "DI $TrnDelayedInfo\n";
+    print TRNFILE "# Description of phases of tournament\n";
+    print TRNFILE "# Per phase a line with SN nessions:nboards:filename:description\n";
     for my $s (1..$TrnNPhases) {
 	print TRNFILE "SN $TrnPhaseName[$s]\n";
     }
     if ($TrnPublished) {
-	print TRNFILE "PU\n";
+	print TRNFILE "KH $TrnKeyHash\n";
+	# print TRNFILE "PU\n";
+    } else {
+	print TRNFILE "#\n# Until published this file may be edited if so wished\n";
     }
     close(TRNFILE);
 }
@@ -230,6 +272,9 @@ sub writekeys {
 }
 
 sub selecttourn {
+
+
+    @x = <*.$suf>;
     print "Current tournaments:";
     for (@x) {
 	s/\.$suf//;
@@ -241,26 +286,42 @@ sub selecttourn {
     print "Which tournament? + for new:";
     $TFile = <>;
     chomp $TFile;
-    if ($TFile =~ /^\+$/) {
-	print "Name of tournament: ";
+    if ($TFile eq "+") {
+	print "Filename of tournament(keep under 10 chars, no spaces or other weird characters): ";
 	$TFile = <>;
 	chomp $TFile;
 	if (readtourn($TFile)) {
 	    die "Tournament already exists";
 	}
-	$TrnDelayedInfo = "Tbd";
+	$TrnDelayedInfo = $undefDI;
     } else {
 	print "Will use tournament $TFile\n";
 	readtourn("$TFile.$suf") || die;
-	readkeys("$TFile.$sufkey") || die "No keyfile found, normal if you are not the organiser";
+	if ($TrnPublished) {
+	    if(!readkeys("$TFile.$sufkey")) {
+	       print "No keyfile found, could be normal(DEVELOPMENT)\n";
+	    }
+	}
     }
 }
 
 sub makesession {
-    my ($reserve_session) = @_;
+    my ($reserve) = @_;
 
+    my $reserve_session = 0;
+    if ($reserve) {
+	$reserve_session = promptfor("which reserve? Usually 1");
+	if ($reserve_session eq "") {
+	    print "Must not be empty\n";
+	    return;
+	}
+    }
     # print "res $_ $reserve_session\n";
     my $sf = promptfor("Session phase");
+    if ( !isnumber($sf) || $sf <= 0 || $sf > $TrnNPhases) {
+	print "$sf not a valid phase number\n";
+	return;
+    }
     ($nses, $seslen, $sesfname, $sesdescr) = split /:/, $TrnPhaseName[$sf];
     # print "nses=$nses, seslen=$seslen, sesfname=$sesfname, sesdescr=$sesdescr\n";
     my $ses = promptfor("Session(s)");
@@ -303,32 +364,43 @@ sub addphase {
 
     promptfor("nsessions");
     my $nsessions = $_;
+    if (!isnumber($nsessions)) {
+	print "Should be a number\n";
+	return;
+    }
     promptfor("nboards");
     my $seslen = $_;
+    if (!isnumber($seslen)) {
+	print "Should be a number\n";
+	return;
+    }
     promptfor("file-prefix");
     my $sesfname = $_;
+# Check for :  or other weirdness
     promptfor("description");
     my $sesdescr = $_;
+# Check for :  or other weirdness
     $TrnPhaseName[++$TrnNPhases] = "$nsessions:$seslen:$sesfname:$sesdescr";
-    for my $s (1..$nsessions) {
-	$skey{"$TrnNPhases,$s"} = make_secret();
-    }
 }
-
-@x = <*.$suf>;
 
 print "Welcome to the tournament board manager\n";
 selecttourn();
 
 if (defined($TrnName)) {
-    print "Tournament $TFile\n";
+    print "Tournament from file $TFile\n";
+    print "Tournament name: $TrnName\n";
     print "Delayed Info $TrnDelayedInfo\n";
     for my $s (1..$TrnNPhases) {
 	print "Session phase $s -> $TrnPhaseName[$s]\n";
     }
 }
 do_menu($TrnPublished ? $PostPublishMenu : $PrePublishMenu);
-$TrnKeyHash = writekeys("$TFile.$sufkey");
+if ($TrnPublished) {
+    # Write keys and compute hash
+    $TrnKeyHash = writekeys("$TFile.$sufkey");
+} else {
+    $TrnKeyHash = "";
+}
 writetourn("$TFile.$suf");
 
 promptfor("Type enter to quit ");
