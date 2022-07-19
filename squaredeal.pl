@@ -8,6 +8,7 @@ $sufkey = "sqk";
 $bigdeal = "./bigdealx";
 
 $undefDI = "Tbd";
+$undefDV = "Tbd";
 $TrnName = "Not yet defined";
 $TrnNPhases = 0;
 
@@ -18,6 +19,7 @@ Setting name of tournament.
 Just for identification purposes, it has no effect on crypto
 %
 $TrnName = promptfor("Name");
+$modified = 1;
 %%
 set delayed information description
 %
@@ -25,6 +27,7 @@ This describes which delayed information will be used after publishing and befor
 For example: Dow Jones Industrial Average on Friday April 13
 %
 $TrnDelayedInfo = promptfor("Delayed info description");
+$modified = 1;
 %%
 add phase of tournament
 %
@@ -32,12 +35,14 @@ Will add phase, consisting of one or more sessions
 includes names of files and decsription of sessions
 %
 addphase();
+$modified = 1;
 %%
 publish
 %
 Marks end of preparation, tournament data can be published now
 %
 publish();
+$modified = 1;
 MENU
 
 $PostPublishMenu =<<'MENU';
@@ -45,7 +50,8 @@ set delayed information value
 %
 This enters the actual delayed information, as described at publication time
 %
-$TrnDelayedInfo = promptfor("Delayed info value");
+$TrnDelayedValue = promptfor("Delayed info value");
+$modified = 1;
 %%
 make session(s)
 %
@@ -60,6 +66,8 @@ Actually makes the hands of the reserve sets of the specified sessions
 %
 makesession(1);
 MENU
+
+$modified = 0;
 
 sub isnumber {
     my ($arg) = @_;
@@ -84,6 +92,8 @@ sub publish {
 	}
     }
     $TrnPublished = 1;
+    # Write keys and compute hash
+    $TrnKeyHash = writekeys("$TFile.$sufkey");
     $runon = 0;
     print "The tournament can now no longer be changed\n";
     print "You should publish the file $TFile.$suf\n";
@@ -127,6 +137,11 @@ sub do_menu {
 	    } else {
 		$runon = 0;
 	    }
+	}
+	if ($modified) {
+	    print "Modified, writing ...\n";
+	    writetourn("$TFile.$suf");
+	    $modified = 0;
 	}
     } while ($runon);
 }
@@ -181,7 +196,9 @@ sub readkeys {
     if ($result ne $TrnKeyHash) {
 	print "Found wrong keyhash\n";
 	print "Hash in description: $TrnKeyHash\n";
+	print "length ", length($TrnKeyHash), "\n";
 	print "Hashed key values  : $result\n";
+	print "length ", length($result), "\n";
 	die;
     }
     # print "Found keys for sessions: $hashlist\n";
@@ -205,6 +222,7 @@ sub readtourn {
     open(TRNFILE, "<", $fname) || return 0;
     while(<TRNFILE>) {
 	chomp;
+	s/\r$//;
 	next if /^#/;
 	if(s/^TN *//) {
 	    $TrnName = $_;
@@ -215,6 +233,9 @@ sub readtourn {
 	}
 	if(s/^DI *//) {
 	    $TrnDelayedInfo = $_;
+	}
+	if(s/^DV *//) {
+	    $TrnDelayedValue = $_;
 	}
 	if(s/^SN *//) {
 	    my ($nsessions, $sesboards, $sesfname, $sesdescr) = split(/:/);
@@ -235,6 +256,7 @@ sub writetourn {
     print TRNFILE "# Description file of tournament for program squaredeal\n#\n";
     print TRNFILE "TN $TrnName\n";
     print TRNFILE "DI $TrnDelayedInfo\n";
+    print TRNFILE "DV $TrnDelayedValue\n" if ($TrnDelayedValue ne $undefDV);;
     print TRNFILE "# Description of phases of tournament\n";
     print TRNFILE "# Per phase a line with SN nessions:nboards:filename:description\n";
     for my $s (1..$TrnNPhases) {
@@ -294,6 +316,7 @@ sub selecttourn {
 	    die "Tournament already exists";
 	}
 	$TrnDelayedInfo = $undefDI;
+	$TrnDelayedValue = $undefDV;
     } else {
 	print "Will use tournament $TFile\n";
 	readtourn("$TFile.$suf") || die;
@@ -308,6 +331,10 @@ sub selecttourn {
 sub makesession {
     my ($reserve) = @_;
 
+    if ($TrnDelayedValue eq $undefDV) {
+	print "Delayed value not set, do that first\n";
+	return;
+    }
     my $reserve_session = 0;
     if ($reserve) {
 	$reserve_session = promptfor("which reserve? Usually 1");
@@ -353,7 +380,7 @@ sub makesession {
 	print "About to make file $sesfnamereal, session $sesdescrreal\n";
 	system $bigdeal, "-W", $seskeyleft,
 	    "-e", $seskeyright,
-	    "-e", $TrnDelayedInfo,
+	    "-e", $TrnDelayedValue,
 	    "-e", $reserve_session,
 	    "-p", $sesfnamereal,
 	    "-n", $real_seslen ;
@@ -390,17 +417,12 @@ if (defined($TrnName)) {
     print "Tournament from file $TFile\n";
     print "Tournament name: $TrnName\n";
     print "Delayed Info $TrnDelayedInfo\n";
+    print "Delayed Value $TrnDelayedValue\n";
     for my $s (1..$TrnNPhases) {
 	print "Session phase $s -> $TrnPhaseName[$s]\n";
     }
 }
 do_menu($TrnPublished ? $PostPublishMenu : $PrePublishMenu);
-if ($TrnPublished) {
-    # Write keys and compute hash
-    $TrnKeyHash = writekeys("$TFile.$sufkey");
-} else {
-    $TrnKeyHash = "";
-}
-writetourn("$TFile.$suf");
+# writetourn("$TFile.$suf");
 
 promptfor("Type enter to quit ");
