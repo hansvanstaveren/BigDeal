@@ -1,4 +1,5 @@
 
+#include "os.h"
 #include <conio.h>
 #include <time.h>
 #include <ctype.h>
@@ -96,13 +97,14 @@ getchtm(int *nbits)
 	return c;
 }
 
-void
+get_hwr
 os_collect() {
 	time_t t;
 
 	(void) time(&t);
 	/* Trust 6 bits of seconds */
 	collect_more((byte *) &t, sizeof(t), 6);
+	return 0;
 }
 
 void
