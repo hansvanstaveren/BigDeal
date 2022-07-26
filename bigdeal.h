@@ -6,9 +6,9 @@
  * Program wide defines for Big Deal
  */
 
-#define VERSION_MAJOR	1
-#define VERSION_MINOR	3
-#define VERSION_PAREN	"(beta)"
+#define VERSION_MAJOR	2
+#define VERSION_MINOR	0
+#define VERSION_PAREN	"(RC)"
 
 #define COMPASS_NORTH	0
 #define COMPASS_EAST	1

@@ -97,14 +97,13 @@ getchtm(int *nbits)
 	return c;
 }
 
-get_hwr
+void
 os_collect() {
 	time_t t;
 
 	(void) time(&t);
 	/* Trust 6 bits of seconds */
 	collect_more((byte *) &t, sizeof(t), 6);
-	return 0;
 }
 
 void

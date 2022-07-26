@@ -155,8 +155,8 @@ read_init_file(char *ifname, int write_when_absent)
  * All parameters for the program when it is running in binary or safe mode
  * In this mode the program should be as idiot proof as possible
  */
-#define OPTION_STRING	"f:n:p:s:R"
-#define USAGE_STRING	"[-n number-of-deals] [-p outputfile-prefix] [-f output-format-list] [-s Serial HW random device] [-R(re-init)]"
+#define OPTION_STRING	"f:n:p:R"
+#define USAGE_STRING	"[-n number-of-deals] [-p outputfile-prefix] [-f output-format-list] [-R(re-init)]"
 #define MAXDEALS	100	/* No more than 100 deals in standard prog */
 #define VERSION_COMMENT	""
 
@@ -167,8 +167,8 @@ read_init_file(char *ifname, int write_when_absent)
  * of the program generating something else than a random, never occurred
  * before set of deals.
  */
-#define OPTION_STRING	"e:E:f:h:n:op:s:RW:"
-#define USAGE_STRING	"[-n nr-of-deals] [-p ofile-prefx] [-f o-format-list] [-s Serial HW random device] [-e entropy-str] [-E entropy-file] [-o(only entropy from command line)] [-W string] [-h hash] [-R(re-init)]"
+#define OPTION_STRING	"e:E:f:h:n:op:RW:"
+#define USAGE_STRING	"[-n nr-of-deals] [-p ofile-prefx] [-f o-format-list] [-e entropy-str] [-E entropy-file] [-o(only entropy from command line)] [-W string] [-h hash] [-R(re-init)]"
 #define MAXDEALS	1000000000
 #define VERSION_COMMENT "(Extended version, not recommended for tournament use)"
 
@@ -442,9 +442,7 @@ main (int argc, char *argv[])
 	int c;
 	extern char *optarg;
 	char *formats = 0;
-	char *hw_random = 0;
 	char *ownerp;
-	get_hwr hardware_random_func = 0;
 #ifdef BIGDEALX
 	int only_arg_entropy = 0;
 	char *hashstr = 0;
@@ -496,9 +494,6 @@ main (int argc, char *argv[])
 		case 'f':
 			formats = optarg;
 			break;
-		case 's':
-			hw_random = optarg;
-			break;
 		case 'n':
 			setboards(optarg);
 			break;
@@ -513,7 +508,7 @@ main (int argc, char *argv[])
 	}
 
 	if (!only_arg_entropy)
-		hardware_random_func = os_collect(hw_random);
+		os_collect();
 
 	read_init_file(os_init_file_name(), 1);
 	binomial_start();
@@ -653,17 +648,6 @@ main (int argc, char *argv[])
 			seed.seed_sequence[1] = (seqno>>8) & 0xFF;
 			seed.seed_sequence[2] = (seqno>>16) & 0xFF;
 			seed.seed_sequence[3] = (seqno>>24) & 0xFF;
-			/*
-			 * If we have hardware random try using it
-			 * on failure return to old fashioned hashing
-			 */
-			if (hardware_random_func) {
-				int hwread;
-
-				hwread = (*hardware_random_func)((char *) dnumber.dn_num, L);
-				if (hwread == L)
-					continue;
-			}
 			/*
 			 * Run all the bits through the hash
 			 */

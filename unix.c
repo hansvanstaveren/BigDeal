@@ -116,19 +116,13 @@ os_dev_random() {
 	return 1;
 }
 
-get_hwr
-os_collect(char *hw_random) {
+void
+os_collect() {
 	int pid;
 	struct timeval t;
 
-	if (hw_random) {
-		/* Hardware random device not implemened on Unix (yet) */
-		fprintf(stderr, "Device %s will not be read, not implemented\n", hw_random);
-		exit(-1);
-	}
-
 	if (os_dev_random()) {
-		return 0;
+		return;
 	}
 	pid = getpid();
 	/* Trust about 8 bits of randomness in pid */
@@ -139,7 +133,6 @@ os_collect(char *hw_random) {
 	if (flog)
 		fprintf(flog, "First TOD=(%ld, %ld), subsecbits = %d\n",
 			t.tv_sec, t.tv_usec, subsecbits);
-	return 0;
 }
 
 static struct termios tios;
