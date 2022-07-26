@@ -454,6 +454,12 @@ main (int argc, char *argv[])
 #endif
 
 	/*
+	 * Some systems (looking at you MinGW) suck at unbuffering stdout
+	 */
+
+	setbuf(stdout, NULL);
+
+	/*
 	 * Say hi to operator
 	 */
 	printf("Big Deal version %d.%d%s%s\n\n",
