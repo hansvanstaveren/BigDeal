@@ -8,7 +8,6 @@ $sufkey = "sqk";
 $bigdeal = "./bigdealx";
 
 $undefDI = "Tbd";
-$undefDV = "Tbd";
 $TrnName = "Not yet defined";
 $TrnNPhases = 0;
 
@@ -256,7 +255,7 @@ sub writetourn {
     print TRNFILE "# Description file of tournament for program squaredeal\n#\n";
     print TRNFILE "TN $TrnName\n";
     print TRNFILE "DI $TrnDelayedInfo\n";
-    print TRNFILE "DV $TrnDelayedValue\n" if ($TrnDelayedValue ne $undefDV);;
+    print TRNFILE "DV $TrnDelayedValue\n" if (defined($TrnDelayedValue));
     print TRNFILE "# Description of phases of tournament\n";
     print TRNFILE "# Per phase a line with SN nessions:nboards:filename:description\n";
     for my $s (1..$TrnNPhases) {
@@ -316,7 +315,6 @@ sub selecttourn {
 	    die "Tournament already exists";
 	}
 	$TrnDelayedInfo = $undefDI;
-	$TrnDelayedValue = $undefDV;
     } else {
 	print "Will use tournament $TFile\n";
 	readtourn("$TFile.$suf") || die;
@@ -331,7 +329,7 @@ sub selecttourn {
 sub makesession {
     my ($reserve) = @_;
 
-    if ($TrnDelayedValue eq $undefDV) {
+    unless (defined($TrnDelayedValue)) {
 	print "Delayed value not set, do that first\n";
 	return;
     }
@@ -376,7 +374,7 @@ sub makesession {
 	$skl = int ((length $seskey)/2);
 	$seskeyleft = substr $seskey, 0, $skl;
 	$seskeyright = substr $seskey, $skl;
-	# print "sk=$seskey\nl=$seskeyleft, r=$seskeyright\n";
+	print "sk=$seskey\nl=$seskeyleft, r=$seskeyright\n";
 	print "About to make file $sesfnamereal, session $sesdescrreal\n";
 	system $bigdeal, "-W", $seskeyleft,
 	    "-e", $seskeyright,
@@ -388,24 +386,41 @@ sub makesession {
 }
 
 sub addphase {
+    my $sesdigits;
 
-    promptfor("nsessions");
+    promptfor("Number of sessions");
     my $nsessions = $_;
     if (!isnumber($nsessions)) {
 	print "Should be a number\n";
 	return;
     }
-    promptfor("nboards");
+    $sesdigits = length;
+    promptfor("Number of boards per session");
     my $seslen = $_;
     if (!isnumber($seslen)) {
 	print "Should be a number\n";
 	return;
     }
+    print "For following two questions a row of # signs in your answer will be replaced by the session number\n";
+    print "So rr# will become rr9, rr10, rr11 or rr## will become rr09, rr10, rr11\n";
+    print "If you do not specify the number it will be added if needed\n\n";
     promptfor("file-prefix");
     my $sesfname = $_;
 # Check for :  or other weirdness
+    if ($nsessions != 1 && $sesfname !~ /#/) {
+	$hashes = "#" x $sesdigits;
+	# print "No hashes in name, will append $hashes\n";
+	$sesfname .= $hashes;
+	print "file-prefix changed to $sesfname\n";
+    }
     promptfor("description");
     my $sesdescr = $_;
+    if ($nsessions != 1 && $sesdescr !~ /#/) {
+	$hashes = " #/$nsessions";
+	# print "No hashes in description, will append $hashes\n";
+	$sesdescr .= $hashes;
+	print "session description changed to $sesdescr\n";
+    }
 # Check for :  or other weirdness
     $TrnPhaseName[++$TrnNPhases] = "$nsessions:$seslen:$sesfname:$sesdescr";
 }
@@ -417,7 +432,7 @@ if (defined($TrnName)) {
     print "Tournament from file $TFile\n";
     print "Tournament name: $TrnName\n";
     print "Delayed Info $TrnDelayedInfo\n";
-    print "Delayed Value $TrnDelayedValue\n";
+    print "Delayed Value $TrnDelayedValue\n" if (defined($TrnDelayedValue));
     for my $s (1..$TrnNPhases) {
 	print "Session phase $s -> $TrnPhaseName[$s]\n";
     }
