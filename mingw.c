@@ -2,9 +2,13 @@
 #define HW_RAND		/* code to use HW random */
 
 #include <windows.h>
+#ifdef notdef
 #include <conio.h>
+#endif
 #include <time.h>
 #include <ctype.h>
+#include <termios.h>
+#include <unistd.h>
 #include <stdio.h>
 #include "types.h"
 #include "bigdeal.h"
@@ -16,6 +20,19 @@ extern FILE *flog;
 #ifdef OS_CRYPT
 
 #include <Wincrypt.h>
+
+/* reads from keypress, doesn't echo */
+int getch(void) {
+    struct termios oldattr, newattr;
+    int ch;
+    tcgetattr( STDIN_FILENO, &oldattr );
+    newattr = oldattr;
+    newattr.c_lflag &= ~( ICANON | ECHO );
+    tcsetattr( STDIN_FILENO, TCSANOW, &newattr );
+    ch = getchar();
+    tcsetattr( STDIN_FILENO, TCSANOW, &oldattr );
+    return ch;
+}
 
 /*
  * Let's get more bytes than needed. We actually only need 4/3*160 *bits*
@@ -81,7 +98,7 @@ os_start()
 	highfreqclock = 1;
 	QueryPerformanceCounter(&epoch);
 	if (flog)
-	    fprintf(flog, "Clock frequency %I64d, epoch %I64d\n",
+	    fprintf(flog, "Clock frequency %lld, epoch %lld\n",
 		frequency.QuadPart, epoch.QuadPart);
     }
 }
@@ -199,7 +216,7 @@ legal_filename_prefix(char *s)
 	if (strlen(s) > 50)
 		return 0;
 	while (*s) {
-		if (!isalnum(*s) && *s != '-' && *s != '_')
+		if (!isalnum((int) *s) && *s != '-' && *s != '_')
 			return 0;
 		s++;
 	}
