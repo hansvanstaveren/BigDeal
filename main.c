@@ -440,9 +440,6 @@ main (int argc, char *argv[])
 	dl_num dnumber;
 	char filename[MESSLEN] = "";
 	int c;
-#ifdef notdef
-	extern char *optarg;
-#endif
 	char *formats = 0;
 	char *ownerp;
 #ifdef BIGDEALX

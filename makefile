@@ -4,7 +4,7 @@
 # $Header: /home/sater/bridge/bigdeal/RCS/Makefile,v 1.4 2000/08/16 15:18:56 sater Exp $
 #
 # Change OS to either unix or dos or mingw
-OS=mingw
+OS=unix
 
 CC=gcc
 PFLAGS=
