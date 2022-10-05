@@ -457,6 +457,12 @@ main (int argc, char *argv[])
 
 	setbuf(stdout, NULL);	/* MinGW hack */
 	/*
+	 * Some systems (looking at you MinGW) suck at unbuffering stdout
+	 */
+
+	setbuf(stdout, NULL);
+
+	/*
 	 * Say hi to operator
 	 */
 	printf("Big Deal version %d.%d%s%s\n\n",
@@ -603,18 +609,16 @@ main (int argc, char *argv[])
 	if (hashstr)
 		random_set(hashstr, seed.seed_random);
 
-	if (!wizard) {
-		/*
-		 * Start checking for duplicate hashes, and log current hash
-		 */
-		for (i=0; i<RMDbytes; i++) {
-			message[2*i  ] = "0123456789ABCDEF"[seed.seed_random[i]/16];
-			message[2*i+1] = "0123456789ABCDEF"[seed.seed_random[i]%16];
-		}
-		message[2*RMDbytes] = 0;
-		if (!hashstr)
-			checkduphash(message);		/* If this fails .... */
+	/*
+	 * Start checking for duplicate hashes, and log current hash
+	 */
+	for (i=0; i<RMDbytes; i++) {
+		message[2*i  ] = "0123456789ABCDEF"[seed.seed_random[i]/16];
+		message[2*i+1] = "0123456789ABCDEF"[seed.seed_random[i]%16];
 	}
+	message[2*RMDbytes] = 0;
+	if (!hashstr && !wizard)
+		checkduphash(message);		/* If this fails .... */
 
 	fprintf(flog, "Deal %d boards to file %s, hash = %s\n",
 		parameters.pp_nboards, filename, message);
