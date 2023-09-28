@@ -1,0 +1,11 @@
+#
+# Make squaredeal binary for Windows users
+# As suggested by https://www.marcbilodeau.com/compiling-perl/
+#
+
+- Install Strawberry Perl
+- In a Perl window run
+    - cpanm PAR
+    - cpanm PAR::Packer
+    - pp -o squaredeal.exe squaredeal.pl
+- Try squaredeal.exe in an ordinary cmd window
