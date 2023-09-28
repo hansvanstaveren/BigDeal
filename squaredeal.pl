@@ -5,7 +5,7 @@ use File::Copy qw( copy );
 
 $suf = "sqd";
 $sufkey = "sqk";
-$bigdeal = "./bigdealx";
+$bigdeal = "bigdealx";
 
 $undefDI = "Tbd";
 $TrnName = "Not yet defined";
@@ -462,6 +462,16 @@ sub addphase {
 # Check for :  or other weirdness
     $TrnPhaseName[++$TrnNPhases] = "$nsessions:$seslen:$sesfname:$sesdescr";
 }
+
+#
+# Prepend . to PATH
+#
+# Some better way of linking to bigdealx should be found
+#
+
+$path = $ENV{"PATH"};
+$path = ".:$path";
+$ENV{"PATH"} = $path;
 
 print "Welcome to the tournament board manager\n";
 selecttourn();
