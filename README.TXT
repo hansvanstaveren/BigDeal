@@ -1,5 +1,3 @@
-# $Header: /home/sater/bridge/bigdeal/RCS/README.txt,v 1.7 2000/07/12 18:43:11 sater Exp sater $
-
 		How to install and run Big Deal version 2.0
 		October 2, 2023
 
@@ -65,9 +63,8 @@ No further knowledge is needed to deal hands. Read on only for
 details, extensions etcetera.
 
 The program is available in two versions, bigdeal and bigdealx.
-The former is advised for common use, the latter has more
-possibilities. Be warned that more can be less, extra
-possibilities can be dangerous.
+The former is advised for common use, the latter has more possibilities.
+Be warned that more can be less, extra possibilities can be dangerous.
 
 Both versions have support for command line options:
 	-n number-of-hands	If this is specified it will not be asked
