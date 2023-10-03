@@ -3,6 +3,8 @@ use Digest::SHA::PurePerl qw(sha256_hex );
 use Bytes::Random::Secure qw( random_string_from );
 use File::Copy qw( copy );
 
+$version = "2.0(RC)";
+
 $suf = "sqd";
 $sufkey = "sqk";
 $bigdeal = "bigdealx";
@@ -311,16 +313,25 @@ sub writekeys {
 }
 
 sub selecttourn {
-
+    my (@x, $ntrn, $trnlist);
 
     @x = <*.$suf>;
-    print "Current tournaments:";
+    $ntrn = 0;
+    $trnlist="";
     for (@x) {
 	s/\.$suf//;
-	print " $_";
+	$trnlist .= " $_";
+	# print " $_";
+	$ntrn++;
     }
 
-    print "\n";
+    if ($ntrn == 0) {
+	print "\n\nMake sure you have ran $bigdeal in this place at least once\n\n\n";
+	sleep(5);
+	promptfor("Type enter if you have");
+    }
+
+    print "Current tournaments:$trnlist\n";
 
     $TFile = promptfor("Which tournament? + for new");
     if ($TFile eq "+") {
@@ -473,7 +484,7 @@ $path = $ENV{"PATH"};
 $path = ".:$path";
 $ENV{"PATH"} = $path;
 
-print "Welcome to the tournament board manager\n";
+print "Welcome to the tournament board manager version $version\n";
 selecttourn();
 
 if (defined($TrnName)) {
