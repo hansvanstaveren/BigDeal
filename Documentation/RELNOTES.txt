@@ -1,5 +1,13 @@
 RELEASE NOTES BIG DEAL
 
+Version 2.0, sometime 2023
+
+A sort of major change in that the software nopw relies on cryptographically strong random data from the OS. The typing is now normally not needed. Also bigdealx has some extra code to support the squaredeal program.
+
+Kops and cds formats were added. These were used in Eastern Europe.
+
+===================================================================================================
+
 Version 1.2, September 8, 2012
 
 The program was recompiled for a Windows instead of a DOS environment. It is still a command line application.
