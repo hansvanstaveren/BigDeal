@@ -8,7 +8,8 @@ OS=unix
 
 CC=gcc
 PFLAGS=
-CFLAGS=-O $(PFLAGS) -Wall -pedantic -I/mingw/include
+#CFLAGS=-O $(PFLAGS) -Wall -pedantic -I/mingw/include
+CFLAGS=-O $(PFLAGS) -Wall -pedantic
 LDFLAGS=$(PFLAGS)
 
 COMMONOBJS=rmd160.o mp.o binomial.o

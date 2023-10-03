@@ -159,7 +159,7 @@ sub do_menu {
 	$ans = promptfor("Item");
 	if ($ans =~ /^\?([0-9]*)$/) {
 	    print $explanation_ar[$1-1], "\n";
-	} elsif ($ans =~ /^[0-9]*$/) {
+	} elsif ($ans =~ /^[0-9]+$/) {
 	    my $ino = $ans -1;
 	    if ($ino >= 0) {
 		if (!defined($command_ar[$ino])) {
@@ -352,41 +352,21 @@ sub selecttourn {
     }
 }
 
-sub makesession {
-    my ($reserve) = @_;
+sub makesessionfromphase {
+    my ($sf, $reserve, $all) = @_;
+    my($ses);
 
-    #
-    # Making sessions only possible after setting Delayed Information Value
-    #
-    unless (defined($TrnDelayedValue)) {
-	print "Delayed value not set, do that first\n";
-	return;
-    }
-    #
-    # Show phases again, in case user forgot
-    #
-    print "Tournament phases:\n";
-    for my $ph (1..$TrnNPhases) {
-	my ($nses, $seslen, $sesfname, $sesdescr) = split /:/, $TrnPhaseName[$ph];
-	print "Phase $ph: $nses sessions of $seslen boards\n"; 
-    }
-    #
-    # Ask for phase
-    #
-    # Allow * here someday to make everything
-    #
-    my $sf = promptfor("Session phase");
-    if ( !isnumber($sf) || $sf <= 0 || $sf > $TrnNPhases) {
-	print "$sf not a valid phase number\n";
-	return;
-    }
     ($nses, $seslen, $sesfname, $sesdescr) = split /:/, $TrnPhaseName[$sf];
     #
     # Found phase and information, now which session
     # something like 3-6 allowed
     # * means all sessions
     #
-    my $ses = promptfor("Session(s)");
+    if ($all) {
+	$ses = "*";
+    } else {
+        $ses = promptfor("Session(s), * for all");
+    }
     if ($ses =~ /^([0-9]+)-([0-9]+)$/) {
 	$lowses = $1;
 	$highses = $2;
@@ -432,6 +412,44 @@ sub makesession {
 	    print "An erropr might have occured: output of Bigdeal:\n$output";
 	}
     }
+}
+
+sub makesession {
+    my ($reserve) = @_;
+
+    #
+    # Making sessions only possible after setting Delayed Information Value
+    #
+    unless (defined($TrnDelayedValue)) {
+	print "Delayed value not set, do that first\n";
+	return;
+    }
+    #
+    # Show phases again, in case user forgot
+    #
+    print "Tournament phases:\n";
+    for my $ph (1..$TrnNPhases) {
+	my ($nses, $seslen, $sesfname, $sesdescr) = split /:/, $TrnPhaseName[$ph];
+	print "Phase $ph: $nses sessions of $seslen boards\n"; 
+    }
+    #
+    # * means all sessions from all phases
+    #
+    my $sf = promptfor("Session phase, * for all");
+    if ($sf =~ /^\*$/) {
+	# do all
+	
+	for my $ph (1..$TrnNPhases) {
+	    makesessionfromphase($ph, $reserve, 1);
+	}
+	return;
+    }
+    if ( !isnumber($sf) || $sf <= 0 || $sf > $TrnNPhases) {
+	print "$sf not a valid phase number\n";
+	return;
+    }
+
+    makesessionfromphase($sf, $reserve, 0);
 }
 
 sub addphase {
