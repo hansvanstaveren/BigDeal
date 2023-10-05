@@ -9,8 +9,7 @@ $suf = "sqd";
 $sufkey = "sqk";
 $bigdeal = "bigdealx";
 
-$undefDI = "Tbd";
-$TrnName = "Not yet defined";
+$undef_info = "Tbd";
 $TrnNPhases = 0;
 
 $PrePublishMenu =<<'MENU';
@@ -109,10 +108,24 @@ sub promptfor {
 sub publish {
 
     #
+    # Tournament Name must be set
+    #
+    if ($TrnName eq $undef_info) {
+	print "Tournament Name has not been set, publishing not allowed\n";
+	return;
+    }
+    #
     # Delayed information description must be set
     #
-    if ($TrnDelayedInfo eq $undefDI) {
+    if ($TrnDelayedInfo eq $undef_info) {
 	print "Tournament Delayed Information has not been set, publishing not allowed\n";
+	return;
+    }
+    #
+    # Should have at least one phase
+    #
+    if ($TrnNPhases <= 0) {
+	print "No phases have been defined, publishing not allowed\n";
 	return;
     }
     #
@@ -339,7 +352,8 @@ sub selecttourn {
 	if (readtourn($TFile)) {
 	    die "Tournament already exists";
 	}
-	$TrnDelayedInfo = $undefDI;
+	$TrnName = $undef_info;
+	$TrnDelayedInfo = $undef_info;
 	$modified = 1;
     } else {
 	print "Will use tournament $TFile\n";
@@ -505,16 +519,14 @@ $ENV{"PATH"} = $path;
 print "Welcome to the tournament board manager version $version\n";
 selecttourn();
 
-if (defined($TrnName)) {
-    print "Tournament from file $TFile\n";
-    print "Tournament name: $TrnName\n";
-    print "Delayed Info $TrnDelayedInfo\n";
-    print "Delayed Value $TrnDelayedValue\n" if (defined($TrnDelayedValue));
-    for my $s (1..$TrnNPhases) {
-	print "Session phase $s -> $TrnPhaseName[$s]\n";
-    }
+print "Tournament from file $TFile\n";
+print "Tournament name: $TrnName\n";
+print "Delayed Info $TrnDelayedInfo\n";
+print "Delayed Value $TrnDelayedValue\n" if (defined($TrnDelayedValue));
+for my $s (1..$TrnNPhases) {
+    print "Session phase $s -> $TrnPhaseName[$s]\n";
 }
+
 do_menu($TrnPublished ? $PostPublishMenu : $PrePublishMenu);
-# writetourn("$TFile.$suf");
 
 promptfor("Type enter to quit ");
