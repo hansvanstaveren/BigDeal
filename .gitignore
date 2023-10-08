@@ -2,4 +2,8 @@
 *.obj
 *.pbn
 *.dup
-
+*.sqd
+*.sqk
+*.bak
+*.exe
+*.ini
