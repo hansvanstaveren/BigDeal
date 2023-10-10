@@ -563,7 +563,7 @@ main (int argc, char *argv[])
 		/*
 		 * Not specified on command line
 		 */
-		if (strcmp(default_askformats, "yes")==0) {
+		if (!wizard && strcmp(default_askformats, "yes")==0) {
 			printf("Hand format(s) to generate: [%s] ",
 				default_formats);
 			(void) readline(stdin, message, MESSLEN);

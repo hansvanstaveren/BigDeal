@@ -2,8 +2,9 @@
 use Digest::SHA::PurePerl qw(sha256_hex );
 use Bytes::Random::Secure qw( random_string_from );
 use File::Copy qw( copy );
+use Convert::Base64 qw( encode_base64 );;
 
-$version = "2.0(RC)";
+$version = "2.0(RC1)";
 
 $suf = "sqd";
 $sufkey = "sqk";
@@ -185,7 +186,8 @@ sub do_menu {
 	    }
 	}
 	if ($modified) {
-	    # print "Modified, writing ...\n";
+	    # keep .sqd file up to date after each mod.
+	    # This will survive crashes, interrupts, etc...
 	    writetourn("$TFile.$suf");
 	    $modified = 0;
 	}
@@ -197,10 +199,11 @@ sub sharpfill {
     my ($prf, $suf, $fmt, $repl);
 
     $str =~ /([^#]*)(#+)(.*)/ || return $str;
+    # Hashes to replace, prf###suf
     $prf = $1;
     $l = length $2;
     $suf = $3;
-    # return $str if ($l==0);
+
     $fmt = "%0${l}d";
     $repl = sprintf($fmt, $n);
     return $prf.$repl.$suf;
@@ -257,9 +260,12 @@ sub readtourn {
 
     open(TRNFILE, "<", $fname) || return 0;
     while(<TRNFILE>) {
+	# remove end of line crud
 	chomp;
 	s/\r$//;
+	# ignore comment
 	next if /^#/;
+
 	if(s/^TN *//) {
 	    $TrnName = $_;
 	}
@@ -308,6 +314,10 @@ sub writekeys {
     my ($fname) = @_;
     $result = "";
 
+    #
+    # Line termination here is CR LF
+    # It matters because of checksum, cannot leave it to OS
+    #
     my $keys = "";
     for my $sf (1..$TrnNPhases) {
 	($nses, $seslen, $sesfname, $sesdescr) = split /:/, $TrnPhaseName[$sf];
@@ -316,9 +326,12 @@ sub writekeys {
 	}
     }
 
-    open(TRNFILE, ">:raw", $fname ) || die;
-    print TRNFILE $keys;
-    close(TRNFILE);
+    #
+    # Write RAW to prevent line termination change
+    #
+    open (KEYFILE, ">:raw", $fname ) || die;
+    print KEYFILE $keys;
+    close(KEYFILE);
 
     $result = sha256_hex($keys);
     # print "hash=$result\n";
@@ -339,7 +352,7 @@ sub selecttourn {
     }
 
     if ($ntrn == 0) {
-	print "\n\nMake sure you have ran $bigdeal in this place at least once\n\n\n";
+	print "\n\nMake sure you have run $bigdeal in this place at least once\n\n\n";
 	sleep(5);
 	promptfor("Type enter if you have");
     }
@@ -360,7 +373,7 @@ sub selecttourn {
 	readtourn("$TFile.$suf") || die;
 	if ($TrnPublished) {
 	    if(!readkeys("$TFile.$sufkey")) {
-	       print "No keyfile found, could be normal(DEVELOPMENT)\n";
+	       print "No keyfile found, serious problem!\n";
 	    }
 	}
     }
@@ -368,7 +381,7 @@ sub selecttourn {
 
 sub makesessionfromphase {
     my ($sf, $reserve, $all) = @_;
-    my($ses);
+    my ($ses, $lowses, $highses);
 
     ($nses, $seslen, $sesfname, $sesdescr) = split /:/, $TrnPhaseName[$sf];
     #
@@ -401,20 +414,27 @@ sub makesessionfromphase {
 	$len_index = ($ses-1) % ($#len_ar+1);
 	$real_seslen = $len_ar[$len_index];
 	# print "seslen $seslen len_index $len_index rseslen $real_seslen\n";
+
 	$sesfnamereal = sharpfill($sesfname, $ses);
 	# print "sesfname=$sesfname, sesfnamereal=$sesfnamereal\n";
 	$sesfnamereal .= "reserve" if ($reserve);
+
 	$sesdescrreal = sharpfill($sesdescr, $ses);
+
 	$seskey = $skey{"$sf,$ses"};
 	$skl = int ((length $seskey)/2);
 	$seskeyleft = substr $seskey, 0, $skl;
 	$seskeyright = substr $seskey, $skl;
 	# print "sk=$seskey\nl=$seskeyleft, r=$seskeyright\n";
+
+	$DVencoding = encode_base64($TrnDelayedValue);
+	# print "TDV=$TrnDelayedValue, DVE=$DVencoding\n";
+
 	print "About to make file $sesfnamereal, session $sesdescrreal\n";
 	$command = join(' ', $bigdeal,
 	    "-W", $seskeyleft,
 	    "-e", $seskeyright,
-	    "-e", $TrnDelayedValue,
+	    "-e", $DVencoding,
 	    "-e", $reserve == 0 ? "original" : "reserve",
 	    "-p", $sesfnamereal,
 	    "-n", $real_seslen
@@ -423,7 +443,7 @@ sub makesessionfromphase {
 	$output = `$command`;
 	$nlines = ( $output =~ tr/\n// );
 	if ($nlines != 2) {
-	    print "An erropr might have occured: output of Bigdeal:\n$output";
+	    print "An error might have occured: output of Bigdeal:\n$output";
 	}
     }
 }

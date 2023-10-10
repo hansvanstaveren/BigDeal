@@ -8,7 +8,7 @@
 
 #define VERSION_MAJOR	2
 #define VERSION_MINOR	0
-#define VERSION_PAREN	"(RC)"
+#define VERSION_PAREN	"(RC1)"
 
 #define COMPASS_NORTH	0
 #define COMPASS_EAST	1
