@@ -630,6 +630,8 @@ main (int argc, char *argv[])
 	 * This according to Carl Ellison's recommendation for P1363
 	 *
 	 * But first put hash of owner ident into seed
+	 *
+	 * In Wizard mode use wizard string iso owner
 	 */
 	ownerp = wizard ? wizard : default_owner;
 	hashcode = RMDhash((byte *) ownerp, strlen(ownerp));

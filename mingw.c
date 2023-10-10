@@ -1,5 +1,4 @@
 #define OS_CRYPT	/* Use OS supplied crypto random */
-#define HW_RAND		/* code to use HW random */
 
 #include <windows.h>
 #ifdef notdef
