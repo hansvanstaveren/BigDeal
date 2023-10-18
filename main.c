@@ -452,7 +452,6 @@ main (int argc, char *argv[])
 #define wizard 0
 #endif
 
-	setbuf(stdout, NULL);	/* MinGW hack */
 	/*
 	 * Some systems (looking at you MinGW) suck at unbuffering stdout
 	 */
