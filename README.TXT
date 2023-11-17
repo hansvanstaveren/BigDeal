@@ -1,5 +1,5 @@
 		How to install and run Big Deal version 2.0
-		October 2, 2023
+		November, 2023
 
 Congratulations, you have acquired Big Deal, probably the best software
 available for dealing hands for tournaments. This documentation
@@ -32,7 +32,7 @@ QUICK START:
 - Type 'bigdeal'
 The program will now ask you three initial questions. The first
 is which output format or formats you prefer. This release
-supports ten different formats. The program suggests you take DUP
+supports twelve different formats. The program suggests you take DUP
 and PBN formats, but the choice is yours. If you just want DGE
 format type 'dge' and ENTER. If you are unsure use PBN, at least
 that is a plain-text format.

@@ -4,7 +4,7 @@ use Bytes::Random::Secure qw( random_string_from );
 use File::Copy qw( copy );
 use Convert::Base64 qw( encode_base64 );;
 
-$version = "2.0(RC1)";
+$version = "2.0";
 
 $suf = "sqd";
 $sufkey = "sqk";

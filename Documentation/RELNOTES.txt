@@ -1,10 +1,12 @@
 RELEASE NOTES BIG DEAL
 
-Version 2.0, sometime 2023
+Version 2.0, november 2023
 
-A sort of major change in that the software now relies on cryptographically strong random data from the OS. The typing is now normally not needed. Also bigdealx has some extra code to support the squaredeal program.
+A sort of major change in that the software now relies on cryptographically strong random data from the OS. The typing is now normally not needed.
+Also bigdealx has some extra code to support the squaredeal program.
+This does not fix any bugs in 1.2, so if you are happy with that you could keep using it.
 
-Kops and cds formats were added. These were used in Eastern Europe.
+Kops and cds formats were added. These were mainly used in Eastern Europe.
 
 ===================================================================================================
 
