@@ -4,11 +4,13 @@ use Bytes::Random::Secure qw( random_string_from );
 use File::Copy qw( copy );
 use Convert::Base64 qw( encode_base64 );;
 
-$version = "2.0";
+$version = "2.1";
 
 $suf = "sqd";
 $sufkey = "sqk";
 $bigdeal = "bigdealx";
+
+$pat_end = qw/^[0.]$/;
 
 $undef_info = "Tbd";
 $TrnNPhases = 0;
@@ -33,7 +35,7 @@ $modified = 1;
 add phase of tournament
 %
 Will add phase, consisting of one or more sessions
-includes names of files and decsription of sessions
+includes names of files and description of sessions
 %
 addphase();
 $modified = 1;
@@ -82,17 +84,28 @@ sub isnumber {
 sub is_board_range_list {
     my ($arg) = @_;
 
+    #
+    # Board range can be a number or a range so '16' or 15-21'
+    # A comma separated list of the latter is also OK
+    #
     if ($arg =~ /^$/) {
 	return 0;
     }
     if (isnumber($arg)) {
-	return 1;
+	return $arg > 0;
     }
     my @len_ar = split /,/, $arg;
+    my $seslen = 0;
     for my $len (@len_ar) {
 	if ($len !~ /^([0-9]+)-([0-9]+)$/) {
 	    return 0;
 	}
+	my $sublen = $2-$1+1;
+	if ($seslen && $seslen != $sublen) {
+	    print "not all ranges same size ($len), must be mistake\n";
+	    return 0;
+	}
+	$seslen = $sublen;
     }
     return 1;
 }
@@ -153,6 +166,9 @@ sub do_menu {
     my ($menu) = @_;
     my (@descr_ar, @explanation_ar, @command_ar);
 
+    #
+    # Read menu, separation %% lines
+    #
     my @items = split /^%%$/m, $menu;
     chomp @items;
     for my $i (0..$#items) {
@@ -163,14 +179,21 @@ sub do_menu {
 	push @explanation_ar, $explanation;
 	push @command_ar, $command;
     }
+    #
+    # Set runon to 1, will stay there until end is signalled
+    #
     $runon = 1;
-    print "For help on menu item 2 type ?2, etc\n";
+    #
+    # Loop: print possibilities, handle ? and call commands
+    #
+    my $initspace = " " x 7;
     do {
-	print "0)\texit program\n";
+	print "For help on menu choice 2 type ?2, etc\n";
+	print "$initspace 0)\texit program\n";
 	for my $i (0..$#descr_ar) {
-	    print $i+1, ")\t$descr_ar[$i]\n";
+	    print "$initspace ", $i+1, ")\t$descr_ar[$i]\n";
 	}
-	$ans = promptfor("Item");
+	$ans = promptfor("Choice");
 	if ($ans =~ /^\?([0-9]*)$/) {
 	    print $explanation_ar[$1-1], "\n";
 	} elsif ($ans =~ /^[0-9]+$/) {
@@ -182,6 +205,9 @@ sub do_menu {
 		    eval $command_ar[$ino];
 		}
 	    } else {
+		#
+		# Exit was chosen
+		#
 		$runon = 0;
 	    }
 	}
@@ -194,6 +220,11 @@ sub do_menu {
     } while ($runon);
 }
 
+#
+# Take format with some ## and replace ### with value of n
+# 
+# Generalized to also take range, like 4-6 and replace each sharps with two numbers with dash in between
+#
 sub sharpfill {
     my ($str, $n) = @_;
     my ($prf, $suf, $fmt, $repl);
@@ -203,14 +234,27 @@ sub sharpfill {
     $prf = $1;
     $l = length $2;
     $suf = $3;
-
     $fmt = "%0${l}d";
+
+    if ($n =~ /^([0-9]+)-([0-9]+)$/) {
+	my $low = $1;
+	my $high = $2;
+	my $rlow = sprintf($fmt, $low);
+	my $rhigh = sprintf($fmt, $high);
+	return "$prf$rlow-$rhigh$suf";
+    }
+
     $repl = sprintf($fmt, $n);
     return $prf.$repl.$suf;
 }
 
 sub make_secret {
 
+    #
+    # Secrets are made as strings containing letters and digits (62 possible characters)
+    # String length = 60
+    # This gives 3.495436e+107 possibilities
+    #
     my $x = join('', ('a' .. 'z'), ('A'..'Z'), ('0'..'9'));
     my $bytes = random_string_from( $x, 60 );
     return $bytes;
@@ -222,17 +266,20 @@ sub readkeys {
 
     open(KEYFILE, "<:crlf", $fname) || return 0;
     my $wholefile = "";
-    my $hashlist = "";
+    #
+    # Read all lines of keys and populate skey{}
+    # Variable $wholefile will contain complete contents, for hashing
+    #
     while (<KEYFILE>) {
 	chomp;
 	$wholefile .= "$_\r\n";
 	($hashval, $key) = split /:/;
-	# print "hv=$hashval, k=$key\n";
-	$hashlist .= "$hashval ";
 	$skey{$hashval} = $key;
     }
+    #
+    # Make hash and check
+    #
     $result = sha256_hex($wholefile);
-    # print "Hash of keys: $result\n";
     if ($result ne $TrnKeyHash) {
 	print "Found wrong keyhash\n";
 	print "Hash in description: $TrnKeyHash\n";
@@ -241,14 +288,16 @@ sub readkeys {
 	print "length ", length($result), "\n";
 	die;
     }
-    # print "Found keys for sessions: $hashlist\n";
+    #
+    # Check if we have keys for all sessions of all phases
+    #
     for my $ph (1..$TrnNPhases) {
 	my ($nses, $seslen, $sesfname, $sesdescr) = split /:/, $TrnPhaseName[$ph];
 	for my $s (1..$nses) {
 	    $hashval = "$ph,$s";
 	    if (!defined($skey{$hashval})) {
 		print "No key found for session $hashval\nFatal error, stop using these files !!!\n";
-		exit(-1);
+		die;
 	    }
 	}
     }
@@ -256,9 +305,12 @@ sub readkeys {
 }
 
 sub readtourn {
-    my($fname) = @_;
+    my($fname, $shouldnotexist) = @_;
 
-    open(TRNFILE, "<", $fname) || return 0;
+    if (!open(TRNFILE, "<", $fname)) {
+	print "Cannot open $fname\n" unless ($shouldnotexist);;
+    	return 0;
+    }
     while(<TRNFILE>) {
 	# remove end of line crud
 	chomp;
@@ -282,6 +334,7 @@ sub readtourn {
 	if(s/^SN *//) {
 	    my ($nsessions, $sesboards, $sesfname, $sesdescr) = split(/:/);
 	    $TrnPhaseName[++$TrnNPhases] = "$nsessions:$sesboards:$sesfname:$sesdescr";
+	    $usedfname{$sesfname} = $TrnNPhases;
 	}
     }
     return 1;
@@ -292,7 +345,7 @@ sub writetourn {
 
     copy $fname, "$fname.bak";
     open(TRNFILE, ">", $fname ) || die;
-    print TRNFILE "# Description file of tournament for program squaredeal\n#\n";
+    print TRNFILE "# Description file of tournament for program squaredeal $version\n#\n";
     print TRNFILE "TN $TrnName\n";
     print TRNFILE "DI $TrnDelayedInfo\n";
     print TRNFILE "DV $TrnDelayedValue\n" if (defined($TrnDelayedValue));
@@ -303,7 +356,6 @@ sub writetourn {
     }
     if ($TrnPublished) {
 	print TRNFILE "KH $TrnKeyHash\n";
-	# print TRNFILE "PU\n";
     } else {
 	print TRNFILE "#\n# Until published this file may be edited if so wished\n";
     }
@@ -312,7 +364,6 @@ sub writetourn {
 
 sub writekeys {
     my ($fname) = @_;
-    $result = "";
 
     #
     # Line termination here is CR LF
@@ -333,28 +384,18 @@ sub writekeys {
     print KEYFILE $keys;
     close(KEYFILE);
 
-    $result = sha256_hex($keys);
-    # print "hash=$result\n";
+    my $result = sha256_hex($keys);
     return $result;
 }
 
 sub selecttourn {
-    my (@x, $ntrn, $trnlist);
+    my (@x, $trnlist);
 
     @x = <*.$suf>;
-    $ntrn = 0;
     $trnlist="";
     for (@x) {
 	s/\.$suf//;
 	$trnlist .= " $_";
-	# print " $_";
-	$ntrn++;
-    }
-
-    if ($ntrn == 0) {
-	print "\n\nMake sure you have run $bigdeal in this place at least once\n\n\n";
-	sleep(5);
-	promptfor("Type enter if you have");
     }
 
     print "Current tournaments:$trnlist\n";
@@ -362,7 +403,7 @@ sub selecttourn {
     $TFile = promptfor("Which tournament? + for new");
     if ($TFile eq "+") {
 	$TFile = promptfor("Filename of tournament(keep under 10 chars, no spaces or other weird characters)");
-	if (readtourn($TFile)) {
+	if (readtourn("$TFile.$suf", 1)) {
 	    die "Tournament already exists";
 	}
 	$TrnName = $undef_info;
@@ -370,7 +411,7 @@ sub selecttourn {
 	$modified = 1;
     } else {
 	print "Will use tournament $TFile\n";
-	readtourn("$TFile.$suf") || die;
+	readtourn("$TFile.$suf", 0) || die;
 	if ($TrnPublished) {
 	    if(!readkeys("$TFile.$sufkey")) {
 	       print "No keyfile found, serious problem!\n";
@@ -378,6 +419,89 @@ sub selecttourn {
 	}
     }
 }
+
+sub testbigdeal {
+    my $fname;
+
+    #
+    # create one pbn file to test bigdeal
+    #
+    print "Will run $bigdeal once to make sure it is installed and works\n\n";
+    do {
+	my $x = join('', ('a' .. 'z'), ('0'..'9'));
+	my $bytes = random_string_from( $x, 6 );
+	$fname = "sqd$bytes";
+    } while (-e "$fname.pbn");
+
+    my $command = join(' ', $bigdeal, "-p", $fname, "-n", "1", "-f", "pbn");
+    system($command);
+    -s "$fname.pbn" || die "$bigdeal failed";
+    unlink "$fname.pbn";
+    print "OK, it works\n\n";
+}
+
+
+sub comb_pbn {
+
+    #
+    # Combine PBN files
+    # Make new header, and remove headers of subfiles
+    # Make new Generator tag
+    #
+    my $outputfile = shift;
+    open COMBFILE, '>', $outputfile;
+    print COMBFILE "% PBN 2.1\n";
+    print COMBFILE "% EXPORT\n";
+    print COMBFILE "%\n";
+    print COMBFILE "[Generator \"SquareDeal version $version, combining @_\"]\n";
+    foreach my $infile (@_) {
+	open INFILE, '<', $infile || die;
+	while( my $line = <INFILE>)  {
+	    next if $line =~ /^%/;
+	    next if $line =~ /\[Generator/;
+	    print COMBFILE $line;
+	}
+	close INFILE;
+    }
+    close COMBFILE;
+}
+
+sub comb_bin {
+
+    #
+    # Combine binary files like DUP
+    # Just concatenate the binary files
+    # Code strangish, copied from Internet source. Seems to work.
+    #
+    my $outputfile = shift;
+    open COMBFILE, '>', $outputfile;
+    binmode COMBFILE;
+    foreach my $infile (@_) {
+	open INFILE, '<', $infile || die;
+	binmode INFILE;
+	my $cont = '';
+	while (1) {
+	    my $success = read INFILE, $cont, 100, length($cont);
+	    die $! if not defined $success;
+	    last if not $success;
+	}
+	close INFILE;
+	print COMBFILE $cont;
+    }
+    close COMBFILE;
+}
+
+#
+# Supported formats for combining
+# Adding a format should only take the relevant subroutine, as above, and entry in the
+# following structures
+#
+@formats = ( "pbn", "dup", "bri", "dge", "ber" );
+$comb_routine{"pbn"} = \&comb_pbn;
+$comb_routine{"dup"} = \&comb_bin;
+$comb_routine{"bri"} = \&comb_bin;
+$comb_routine{"dge"} = \&comb_bin;
+$comb_routine{"ber"} = \&comb_bin;
 
 sub makesessionfromphase {
     my ($sf, $reserve, $all) = @_;
@@ -411,7 +535,9 @@ sub makesessionfromphase {
     #
     @len_ar = split /,/, $seslen;
     for $ses ($lowses..$highses) {
+	# len_index is index into array of lenghths
 	$len_index = ($ses-1) % ($#len_ar+1);
+	# real_seslen is length of this session
 	$real_seslen = $len_ar[$len_index];
 	# print "seslen $seslen len_index $len_index rseslen $real_seslen\n";
 
@@ -421,12 +547,18 @@ sub makesessionfromphase {
 
 	$sesdescrreal = sharpfill($sesdescr, $ses);
 
+	#
+	# get session key, and split into left half and right half to put into bigdealx
+	#
 	$seskey = $skey{"$sf,$ses"};
 	$skl = int ((length $seskey)/2);
 	$seskeyleft = substr $seskey, 0, $skl;
 	$seskeyright = substr $seskey, $skl;
 	# print "sk=$seskey\nl=$seskeyleft, r=$seskeyright\n";
 
+	#
+	# delayed value is base64 encoded in case it contains weird characters
+	#
 	$DVencoding = encode_base64($TrnDelayedValue);
 	# print "TDV=$TrnDelayedValue, DVE=$DVencoding\n";
 
@@ -440,11 +572,78 @@ sub makesessionfromphase {
 	    "-n", $real_seslen
 		    );
 	# print "command : $command\n";
+	#
+	# Run bigdeal command and check if nothing weird comes out
+	# This check might be made more serious
+	#
 	$output = `$command`;
 	$nlines = ( $output =~ tr/\n// );
 	if ($nlines != 2) {
-	    print "An error might have occured: output of Bigdeal:\n$output";
+	    print "An error might have occurred: output of Bigdeal:\n$output";
 	}
+    }
+    #
+    # We made the requested files, but...
+    #
+    # but maybe we can combine dup/pbn files from sessions
+    # If not just return here
+    #
+    # Check len_ar, if it is something like 1-10,11-20,21-30 and make all sessions (*)
+    # then if len_ar can be combined(this case to 1-30) then try to combine the files.
+    #
+
+    return if $lowses!=1 || $highses!=$nses;
+
+    my $njoin = $#len_ar+1;
+    return if ($njoin <= 1);
+
+    my $lowbnd = 0;
+    foreach my $l (@len_ar)  {
+	return unless $l =~ /^([0-9]+)-([0-9]+)$/;
+	my $min = $1;
+	my $max = $2;
+	return if ($min != $lowbnd+1);
+	$lowbnd = $max;
+    }
+    print "Session sizes allow for combining $njoin at a time\n";
+
+    foreach my $format (@formats) {
+	my @files;
+	my @comb_names;
+
+	#
+	# Search for all session files with this format
+	#
+	my $all_files_present = 1;
+	for $ses (1..$nses) {
+	    my $sesfnamepref = sharpfill($sesfname, $ses);
+	    my $sesfname_complete = "$sesfnamepref.$format";
+	    $all_files_present = 0 unless -r $sesfname_complete;
+	    push(@files, $sesfname_complete);
+	}
+
+	#
+	# They should be all there, just made
+	#
+	next unless ($all_files_present);
+
+	my $joinbegin = 1;
+	while ($joinbegin < $nses) {
+	    $joinend = $joinbegin + $njoin -1;
+	    $joinend = $nses if $joinend > $nses;
+
+	    #
+	    # Make name for file into which to combine
+	    #
+	    $dstfname = sharpfill($sesfname, "$joinbegin-$joinend");
+	    push @comb_names, $dstfname;
+
+	    $comb_routine{$format}->("$dstfname.$format", @files[$joinbegin-1..$joinend-1]);
+	    $joinbegin += $njoin;
+	}
+
+	my $ucformat = uc($format);
+	print "Combined $ucformat files to @comb_names\n";
     }
 }
 
@@ -458,14 +657,8 @@ sub makesession {
 	print "Delayed value not set, do that first\n";
 	return;
     }
-    #
-    # Show phases again, in case user forgot
-    #
-    print "Tournament phases:\n";
-    for my $ph (1..$TrnNPhases) {
-	my ($nses, $seslen, $sesfname, $sesdescr) = split /:/, $TrnPhaseName[$ph];
-	print "Phase $ph: $nses sessions of $seslen boards\n"; 
-    }
+
+    showphases();
     #
     # * means all sessions from all phases
     #
@@ -487,45 +680,106 @@ sub makesession {
 }
 
 sub addphase {
-    my $sesdigits;
+    my ($sesdigits, $sesfname, $phaseno);
 
-    promptfor("Number of sessions");
-    my $nsessions = $_;
-    if (!isnumber($nsessions)) {
-	print "Should be a number\n";
+    showphases();
+
+    $phaseno = $TrnNPhases+1;
+    print "About to add phase number $phaseno\n";
+    print "Enter . on a line to exit without adding phase\n";
+
+    my $nsessions = promptfor("Number of sessions");
+    return if $nsessions =~ $pat_end;
+
+    if (!isnumber($nsessions) || $nsessions <= 0) {
+	print "Should be a number(greater than zero)\n";
 	return;
     }
-    $sesdigits = length;
-    promptfor("Number of boards per session");
-    my $seslen = $_;
+    $sesdigits = length;		# Length of number of sessions for ##
+
+    print "Number of boards per session: like 7 or 1-7 or 1-7,8-14,15-21 which is also 3x7\n";
+    my $seslen = promptfor("Number of boards");
+    return if $seslen =~ $pat_end;
+
+    #
+    # Special case 3x7 or so
+    # Translate to board range list here
+    #
+    if (/^([1-9][0-9]*)x([1-9][0-9]*)$/) {
+	my $ns = $1;
+	my $sl = $2;
+	my @sesar;
+	for my $s (1..$ns) {
+	    my $lowbd = ($s-1)*$sl+1;
+	    my $highbd = $s*$sl;
+	    my $r = "$lowbd-$highbd";
+	    push @sesar, $r;
+	}
+	$seslen = join ",", @sesar;
+	print "translated to $seslen\n";
+    }
+
     if (!is_board_range_list($seslen)) {
 	print "Should be a number or board range list\n";
 	return;
     }
+
     print "For following two questions a row of # signs in your answer will be replaced by the session number\n";
     print "So rr# will become rr9, rr10, rr11 or rr## will become rr09, rr10, rr11\n";
-    print "If you do not specify the number it will be added if needed\n\n";
-    promptfor("file-prefix");
-    my $sesfname = $_;
-# Check for :  or other weirdness
+    print "If you do not specify the #'es they will be added if needed\n\n";
+
+    my $file_still_to_enter = 1;
+    while ($file_still_to_enter) {
+	$sesfname = promptfor("file-prefix");
+	return if $sesfname =~ $pat_end;
+
+	$file_still_to_enter = 0 if $sesfname =~ /^[a-zA-Z][a-zA-Z0-9]*$/;
+    } 
     if ($nsessions != 1 && $sesfname !~ /#/) {
 	$hashes = "#" x $sesdigits;
-	# print "No hashes in name, will append $hashes\n";
 	$sesfname .= $hashes;
 	print "file-prefix changed to $sesfname\n";
     }
-    promptfor("description");
-    my $sesdescr = $_;
+    if (my $uf = $usedfname{$sesfname}) {
+	print "Filename already used in phase $uf\n";
+	return;
+    }
+
+    my $sesdescr = promptfor("description");
+    return if $sesdescr =~ $pat_end;
+
+    #
+    # In case some weirdo puts a : in description
+    #
+    $sesdescr =~ s/\://g;
+
     if ($nsessions != 1 && $sesdescr !~ /#/) {
 	$hashes = " #/$nsessions";
-	# print "No hashes in description, will append $hashes\n";
 	$sesdescr .= $hashes;
 	print "session description changed to $sesdescr\n";
     }
-# Check for :  or other weirdness
+
     $TrnPhaseName[++$TrnNPhases] = "$nsessions:$seslen:$sesfname:$sesdescr";
 }
 
+sub showphases {
+    #
+    # Show phases again, in case user forgot
+    #
+    if ($TrnNPhases <= 0) {
+	print "No tournament phases have been defined yet\n";
+	return;
+    }
+    print "Tournament phases:\n";
+    for my $ph (1..$TrnNPhases) {
+	my ($nses, $seslen, $sesfname, $sesdescr) = split /:/, $TrnPhaseName[$ph];
+	print "Phase $ph: $nses sessions of $seslen boards on file $sesfname: $sesdescr\n"; 
+    }
+}
+
+#
+# MAIN program
+#
 #
 # Prepend . to PATH
 #
@@ -537,15 +791,19 @@ $path = ".:$path";
 $ENV{"PATH"} = $path;
 
 print "Welcome to the tournament board manager version $version\n";
+#
+# Call bigdeal here to make one board, could be quiet if it works
+#
+
+testbigdeal();
+
 selecttourn();
 
 print "Tournament from file $TFile\n";
 print "Tournament name: $TrnName\n";
 print "Delayed Info $TrnDelayedInfo\n";
 print "Delayed Value $TrnDelayedValue\n" if (defined($TrnDelayedValue));
-for my $s (1..$TrnNPhases) {
-    print "Session phase $s -> $TrnPhaseName[$s]\n";
-}
+showphases();
 
 do_menu($TrnPublished ? $PostPublishMenu : $PrePublishMenu);
 
