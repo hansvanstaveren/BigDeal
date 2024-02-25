@@ -1,3 +1,5 @@
 - Documentation omitted to state that number of boards can now also be range:
 	so for example 11-20 will make 10 boards numbered 11 to 20
 	not tested with all output formats at the moment
+- In types.h the unsigned long was replaced with uint32_t from <stdint.h>
+	Needed because of 64 bit implementations
