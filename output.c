@@ -175,32 +175,42 @@ print_bri(FILE *out, int boardno, hr_p hrp)
 }
 
 static void
+out_handrep(FILE *out, dl_byh *dbhp, char *suitstr[NCOMPASS][NSUIT], char *cardrep, int compass)
+/*
+ * Write out a "dge", "lin" or "pbn" single hand
+ */
+{
+	int suit;
+	int i;
+	int card, card_in_suit;
+
+	for (suit=SUIT_SPADES; suit<=SUIT_CLUBS; suit++) {
+		fputs(suitstr[compass][suit], out);
+		for (i=0; i<NCARDSPERHAND; i++) {
+			/*
+			 * Get card in this position for player
+			 * If it is part of the suit we are working on
+			 * (1..13 for spades, upto 40..52 for clubs)
+			 * print it.
+			 */
+			card = dbhp->dh_hand[compass][i];
+			card_in_suit = card - 13*suit;
+			if (card_in_suit > 0 && card_in_suit <= 13)
+				putc(cardrep[card_in_suit-1], out);
+		}
+	}
+}
+
+static void
 out_cardrep(FILE *out, dl_byh *dbhp, char *suitstr[NCOMPASS][NSUIT], char *cardrep)
 /*
  * Write out a "dge" or "pbn" record, no filler
  */
 {
 	int compass;
-	int suit;
-	int i;
-	int card, card_in_suit;
 
 	for (compass=COMPASS_NORTH; compass<=COMPASS_WEST; compass++) {
-		for (suit=SUIT_SPADES; suit<=SUIT_CLUBS; suit++) {
-			fputs(suitstr[compass][suit], out);
-			for (i=0; i<NCARDSPERHAND; i++) {
-				/*
-				 * Get card in this position for player
-				 * If it is part of the suit we are working on
-				 * (1..13 for spades, upto 40..52 for clubs)
-				 * print it.
-				 */
-				card = dbhp->dh_hand[compass][i];
-				card_in_suit = card - 13*suit;
-				if (card_in_suit > 0 && card_in_suit <= 13)
-					putc(cardrep[card_in_suit-1], out);
-			}
-		}
+		out_handrep(out, dbhp, suitstr, cardrep, compass);
 	}
 }
 
@@ -275,7 +285,6 @@ out_pbn(FILE *out, dl_byh *dbhp)
  * Write out the "pbn" record, just the hand itself
  */
 {
-
 	out_cardrep(out, dbhp, pbn_suitstr, cardrep_int);
 }
 
@@ -324,6 +333,30 @@ print_pbn(FILE *out, int boardno, hr_p hrp) {
 	out_pbn_rec(out,"Contract", 0);
 	out_pbn_rec(out,"Result", 0);
 	fprintf(out, "\n");
+}
+
+static char *lin_vulnrep[] = { "0", "n", "e", "b" };
+static char *lin_suitstr[NCOMPASS][NSUIT] = {
+	{ "S", "H", "D", "C" },
+	{ "S", "H", "D", "C" },
+	{ "S", "H", "D", "C" },
+	{ "S", "H", "D", "C" },
+};
+static void
+print_lin(FILE *out, int boardno, hr_p hrp)
+/*
+ * Write out the "pbn" record, with furnishings
+ */
+{
+	dl_byh *dbhp = hrp->hr_value.hv_dbhp;
+
+	fprintf(out, "qx|o%d|md|%d", boardno, (boardno+1)%4+1);
+	out_handrep(out, dbhp, lin_suitstr, cardrep_int, COMPASS_SOUTH);
+	putc(',', out);
+	out_handrep(out, dbhp, lin_suitstr, cardrep_int, COMPASS_WEST);
+	putc(',', out);
+	out_handrep(out, dbhp, lin_suitstr, cardrep_int, COMPASS_NORTH);
+	fprintf(out, "|rh||ah|Board %d|sv|%s|pg||\n", boardno, lin_vulnrep[vuln_index[boardno%16]]);
 }
 
 /*
@@ -904,6 +937,9 @@ of_t output_formats[] = {
 	{ "pbn",		0,	NULL,	".pbn",	BF_BYHAND,
 		0,	"Portable Bridge Notation",
 		init_pbn,	print_pbn,	0 },
+	{ "lin",		0,	NULL,	".lin",	BF_BYHAND,
+		0,	"BBO format",
+		0,	print_lin,	0 },
 	{ "csv",		0,	NULL,	".csv",	BF_BYHAND,
 		0,	"Comma Separated Values",
 		0,		print_csv,	0 },
