@@ -970,7 +970,7 @@ of_t output_formats[] = {
 };
 
 void
-output_help() {
+output_help(void) {
 	of_p ofp;
 
 	printf("%-8s%8s    Explanation\n\n", "Name", "Suffix");
@@ -1163,7 +1163,7 @@ output_createfiles(char *fileprefix, progparams_p ppp)
 }
 
 void
-output_closefiles()
+output_closefiles(void)
 /*
  * Close all output files
  */

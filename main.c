@@ -379,7 +379,7 @@ goedel(dl_num *dnp)
 extern int nrandombits;
 
 static void
-get_entropy_from_keyboard() {
+get_entropy_from_keyboard(void) {
 	int c, oldc;
 	int nbits;
 

@@ -97,7 +97,7 @@ getchtm(int *nbits)
 #define DEVRANDOM	"/dev/urandom"
 #define DEVRANDSIZE	40		/* 40 bytes * 8 = 320 bits, way higher than the 160 bits plus ... */
 static int
-os_dev_random() {
+os_dev_random(void) {
 	int fd;
 	byte buf[DEVRANDSIZE];
 	int bytesread;
@@ -117,7 +117,7 @@ os_dev_random() {
 }
 
 void
-os_collect() {
+os_collect(void) {
 	int pid;
 	struct timeval t;
 
@@ -138,7 +138,7 @@ os_collect() {
 static struct termios tios;
 
 void
-cbreak()
+cbreak(void)
 /*
  * Set terminal to state where characters can be read one at a time
  * Also disable echo
@@ -156,7 +156,7 @@ cbreak()
 }
 
 void
-cooked()
+cooked(void)
 /*
  * Reset terminal to original state
  */
@@ -166,13 +166,13 @@ cooked()
 }
 
 void
-os_start() {
+os_start(void) {
 
 	ioctl(0, GTTY, &tios);
 }
 
 void
-os_finish() {
+os_finish(void) {
 
 	cooked();
 }
@@ -196,7 +196,7 @@ legal_filename_prefix(char *s)
 	return 1;
 }
 
-char *os_init_file_name()
+char *os_init_file_name(void)
 {
 
 	return ".bigdealrc";

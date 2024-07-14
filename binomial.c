@@ -9,7 +9,7 @@
 static byte pascal_triangle[NCARDSPERDECK+1][NCARDSPERHAND+1][L];
 
 void
-binomial_start()
+binomial_start(void)
 /*
  * Precomputes all numbers (n over k) with k<=NCARDSPERHAND and
  * n<=NCARDSPERDECK.

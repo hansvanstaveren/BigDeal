@@ -17,7 +17,7 @@ static int nhashbytes;			/* Number of bytes hashed */
 extern FILE *flog;
 
 void
-collect_start()
+collect_start(void)
 /*
  * Set everything to zero, and init the hashing engine
  */
