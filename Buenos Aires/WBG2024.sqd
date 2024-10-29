@@ -1,0 +1,15 @@
+# Description file of tournament for program squaredeal 2.1
+#
+TN World Bridge Games 2024
+DI DJI1910
+DV 43275.91
+# Description of phases of tournament
+# Per phase a line with SN nessions:nboards:filename:description
+SN 17:1-16,17-32:OPRR##:Open Round Robin #/17
+SN 23:1-12,13-24:WSRR##:Women/Seniors Round Robin #/23
+SN 29:1-10,11-20,21-30:MXRR##:Mixed Teams Round Robin #/29
+SN 3:20:R16#:Round of 16 #/3
+SN 6:1-16,17-32:QF#:Quarter Finals #/6
+SN 6:1-16,17-32:SF#:Semi Finals #/6
+SN 6:1-16,17-32:FIN#:Finals #/6
+KH bd4a46bea10ad8d20abd580f6be8869ef7772191ee9f6851cb1ab25df52a573e
