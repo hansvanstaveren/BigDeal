@@ -413,7 +413,7 @@ sub selecttourn {
 	readtourn("$TFile.$suf", 0) || die;
 	if ($TrnPublished) {
 	    if(!readkeys("$TFile.$sufkey")) {
-	       print "No keyfile found, serious problem!\n";
+	       die "No keyfile found, serious problem!\n";
 	    }
 	}
     }
