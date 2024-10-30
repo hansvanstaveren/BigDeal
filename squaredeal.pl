@@ -6,7 +6,7 @@ use Convert::Base64 qw( encode_base64 );;
 
 $version = "2.2";
 
-$suf = "sqd";
+$sufdsc = "sqd";
 $sufkey = "sqk";
 $bigdeal = "bigdealx";
 
@@ -14,6 +14,8 @@ $pat_end = qw/^[0.]$/;
 
 $undef_info = "Tbd";
 $TrnNPhases = 0;
+
+$Modified = 0;
 
 $PrePublishMenu =<<'MENU';
 set tournament name
@@ -69,8 +71,6 @@ Actually makes the hands of the reserve sets of the specified sessions
 %
 makesession(1);
 MENU
-
-$Modified = 0;
 
 sub isnumber {
     my ($arg) = @_;
@@ -157,7 +157,7 @@ sub publish {
     $TrnKeyHash = writekeys("$TFile.$sufkey");
     $Runon = 0;
     print "The tournament can now no longer be changed\n";
-    print "You should publish the file $TFile.$suf\n";
+    print "You should publish the file $TFile.$sufdsc\n";
     print "Keep the file $TFile.$sufkey very, very secret!!\n";
 }
 
@@ -198,7 +198,7 @@ sub do_menu {
 	} elsif ($ans =~ /^[0-9]+$/) {
 	    my $ino = $ans -1;
 	    if ($ino >= 0) {
-		if (!defined($command_ar[$ino])) {
+		unless (defined($command_ar[$ino])) {
 		    print "Command unknown\n";
 		} else {
 		    eval $command_ar[$ino];
@@ -213,7 +213,7 @@ sub do_menu {
 	if ($Modified) {
 	    # keep .sqd file up to date after each mod.
 	    # This will survive crashes, interrupts, etc...
-	    writetourn("$TFile.$suf");
+	    writetourn("$TFile.$sufdsc");
 	    $Modified = 0;
 	}
     } while ($Runon);
@@ -263,7 +263,10 @@ sub readkeys {
     my ($fname) = @_;
     my ($hashval, $key);
 
-    open(KEYFILE, "<:crlf", $fname) || return 0;
+    unless (open(KEYFILE, "<:crlf", $fname)) {
+	print "Cannot open the file that should contain the keys ($fname)\n";
+	return 0;
+    }
     my $wholefile = "";
     #
     # Read all lines of keys and populate skey{}
@@ -285,7 +288,7 @@ sub readkeys {
 	print "length ", length($TrnKeyHash), "\n";
 	print "Hashed key values  : $result\n";
 	print "length ", length($result), "\n";
-	die;
+	return 0;
     }
     #
     # Check if we have keys for all sessions of all phases
@@ -294,9 +297,9 @@ sub readkeys {
 	my ($nses, $seslen, $sesfname, $sesdescr) = split /:/, $TrnPhaseName[$ph];
 	for my $s (1..$nses) {
 	    $hashval = "$ph,$s";
-	    if (!defined($skey{$hashval})) {
+	    unless (defined($skey{$hashval})) {
 		print "No key found for session $hashval\nFatal error, stop using these files !!!\n";
-		die;
+		return 0;
 	    }
 	}
     }
@@ -306,7 +309,7 @@ sub readkeys {
 sub readtourn {
     my($fname, $shouldnotexist) = @_;
 
-    if (!open(TRNFILE, "<", $fname)) {
+    unless (open(TRNFILE, "<", $fname)) {
 	print "Cannot open $fname\n" unless ($shouldnotexist);;
     	return 0;
     }
@@ -320,17 +323,17 @@ sub readtourn {
 	if(s/^TN *//) {
 	    $TrnName = $_;
 	}
-	if(s/^KH *//) {
+	elsif(s/^KH *//) {
 	    $TrnKeyHash = $_;
 	    $TrnPublished = 1;
 	}
-	if(s/^DI *//) {
+	elsif(s/^DI *//) {
 	    $TrnDelayedInfo = $_;
 	}
-	if(s/^DV *//) {
+	elsif(s/^DV *//) {
 	    $TrnDelayedValue = $_;
 	}
-	if(s/^SN *//) {
+	elsif(s/^SN *//) {
 	    my ($nsessions, $sesboards, $sesfname, $sesdescr) = split(/:/);
 	    $TrnPhaseName[++$TrnNPhases] = "$nsessions:$sesboards:$sesfname:$sesdescr";
 	    $usedfname{$sesfname} = $TrnNPhases;
@@ -370,7 +373,8 @@ sub writekeys {
     #
     my $keys = "";
     for my $sf (1..$TrnNPhases) {
-	($nses, $notused_seslen, $notused_sesfname, $notused_sesdescr) = split /:/, $TrnPhaseName[$sf];
+	my @flds = split /:/, $TrnPhaseName[$sf];
+	my $nses = $flds[0];
 	for my $s (1..$nses) {
 	    $keys .= "$sf,$s:" . $skey{"$sf,$s"} . "\r\n";
 	}
@@ -383,6 +387,9 @@ sub writekeys {
     print KEYFILE $keys;
     close(KEYFILE);
 
+    #
+    # Compute hash to store in .sqd file
+    #
     my $result = sha256_hex($keys);
     return $result;
 }
@@ -390,19 +397,19 @@ sub writekeys {
 sub selecttourn {
     my (@x, $trnlist);
 
-    @x = <*.$suf>;
+    @x = <*.$sufdsc>;
     $trnlist="";
     for (@x) {
-	s/\.$suf//;
+	s/\.$sufdsc//;
 	$trnlist .= " $_";
     }
 
     print "Current tournaments:$trnlist\n";
 
-    $TFile = promptfor("Which tournament? + for new");
+    $TFile = promptfor("Which tournament? Use + for new");
     if ($TFile eq "+") {
 	$TFile = promptfor("Filename of tournament(keep under 10 chars, no spaces or other weird characters)");
-	if (readtourn("$TFile.$suf", 1)) {
+	if (readtourn("$TFile.$sufdsc", 1)) {
 	    die "Tournament already exists";
 	}
 	$TrnName = $undef_info;
@@ -410,10 +417,10 @@ sub selecttourn {
 	$Modified = 1;
     } else {
 	print "Will use tournament $TFile\n";
-	readtourn("$TFile.$suf", 0) || die;
+	readtourn("$TFile.$sufdsc", 0) || die;
 	if ($TrnPublished) {
-	    if(!readkeys("$TFile.$sufkey")) {
-	       die "No keyfile found, serious problem!\n";
+	    unless (readkeys("$TFile.$sufkey")) {
+	       die "Cannot continue with this tournament\n";
 	    }
 	}
     }
@@ -425,15 +432,25 @@ sub testbigdeal {
     #
     # create one pbn file to test bigdeal
     #
-    print "Will run $bigdeal once to make sure it is installed and works\n\n";
+    print "Will run $bigdeal once to make sure it is installed and works\n";
+    print "If this is your first time you have to set formats(first question), other questions are irrelevant\n\n";
+    #
+    # Generate a filename that does not exist yet
+    #
     do {
 	my $x = join('', ('a' .. 'z'), ('0'..'9'));
 	my $bytes = random_string_from( $x, 6 );
 	$fname = "sqd$bytes";
     } while (-e "$fname.pbn");
 
+    #
+    # Run bigdeal to make a PBN file of one board
+    #
     my $command = join(' ', $bigdeal, "-p", $fname, "-n", "1", "-f", "pbn");
     system($command);
+    #
+    # Did it work?
+    #
     -s "$fname.pbn" || die "$bigdeal failed";
     unlink "$fname.pbn";
     print "OK, it works\n\n";
@@ -617,7 +634,7 @@ sub makesessionfromphase {
 	$DVencoding = encode_base64($TrnDelayedValue);
 	# print "TDV=$TrnDelayedValue, DVE=$DVencoding\n";
 
-	# print "About to make file $sesfnamereal, session $sesdescrreal\n";
+	print "About to make file $sesfnamereal, session $sesdescrreal\n";
 	$command = join(' ', $bigdeal,
 	    "-W", $seskeyleft,
 	    "-e", $seskeyright,
@@ -741,7 +758,7 @@ sub addphase {
 	print "translated to $seslen\n";
     }
 
-    if (!is_board_range_list($seslen)) {
+    unless (is_board_range_list($seslen)) {
 	print "Should be a number or board range list\n";
 	return;
     }
