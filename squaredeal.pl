@@ -404,11 +404,16 @@ sub selecttourn {
 	$trnlist .= " $_";
     }
 
-    print "Current tournaments:$trnlist\n";
-
-    $TFile = promptfor("Which tournament? Use + for new");
+    if ($trnlist eq "") {
+	$TFile = "+";
+	$myfirsttourn = " your first";
+    } else {
+	print "Current tournaments:$trnlist\n";
+	$myfirsttourn = "";
+	$TFile = promptfor("Which tournament? Use + for new");
+    }
     if ($TFile eq "+") {
-	$TFile = promptfor("Filename of tournament(keep under 10 chars, no spaces or other weird characters)");
+	$TFile = promptfor("Filename of$myfirsttourn tournament(keep under 10 chars, no spaces or other weird characters)");
 	if (readtourn("$TFile.$sufdsc", 1)) {
 	    die "Tournament already exists";
 	}
@@ -416,7 +421,6 @@ sub selecttourn {
 	$TrnDelayedInfo = $undef_info;
 	$Modified = 1;
     } else {
-	print "Will use tournament $TFile\n";
 	readtourn("$TFile.$sufdsc", 0) || die;
 	if ($TrnPublished) {
 	    unless (readkeys("$TFile.$sufkey")) {
@@ -695,18 +699,32 @@ sub makesession {
 sub complex_ses_pat {
     my ($nsessions, $pat) = @_;
 
+    #
+    # What could be valid
+    # return "BAD" if bogus
+    #
+    # Could be cleaned up
+    #
     unless ($pat =~ /([0-9,\-]*)\(([0-9,\-]*)\)/) {
 	return "BAD";
     }
 
     my @first = split(',', $1);
     my @second = split(',', $2);
-
+    #
+    # first is before (
+    # second is between ()
+    #
+    # Make array of first, followed by multiple seconds unless >= nsessions
+    #
     my @all = @first;
     while ($#all+1 < $nsessions) {
 	push (@all, @second);
     }
 
+    #
+    # Truncate to just enough sessions
+    #
     my @answer = @all[0..$nsessions-1];
 
     return join(',', @answer);
@@ -728,7 +746,7 @@ sub addphase {
 	print "Should be a number(greater than zero)\n";
 	return;
     }
-    $sesdigits = length;		# Length of number of sessions for ##
+    $sesdigits = length $nsessions;	# Length of number of sessions for ##
 
     print "Number of boards per session: like 7 or 1-7 or 1-7,8-14,15-21 which is also 3x7\n";
     $seslen = promptfor("Number of boards");
@@ -750,12 +768,13 @@ sub addphase {
 	}
 	$seslen = join ",", @sesar;
 	print "translated to $seslen\n";
-    }
-
-    my $complex = complex_ses_pat($nsessions, $seslen);
-    if ($complex ne "BAD") {
-	$seslen = $complex;
-	print "translated to $seslen\n";
+    } else {
+	# could be complex pattern, try here
+	my $complex = complex_ses_pat($nsessions, $seslen);
+	if ($complex ne "BAD") {
+	    $seslen = $complex;
+	    print "translated to $seslen\n";
+	}
     }
 
     unless (is_board_range_list($seslen)) {
