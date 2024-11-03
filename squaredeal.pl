@@ -4,7 +4,7 @@ use Bytes::Random::Secure qw( random_string_from );
 use File::Copy qw( copy );
 use Convert::Base64 qw( encode_base64 );;
 
-$version = "2.2";
+$version = "2.3";
 
 $sufdsc = "sqd";
 $sufkey = "sqk";
@@ -524,49 +524,35 @@ $comb_routine{"bri"} = \&comb_bin;
 $comb_routine{"dge"} = \&comb_bin;
 $comb_routine{"ber"} = \&comb_bin;
 
-$join_board_high = 0;
-$join_number = 0;
-$join_begin = 1;
-@join_fname_ar = ();
-
 sub join_files {
-    my ($sesfname) = @_;
+    my ($sesfname, $join_begin, $join_end, @join_fname_ar) = @_;
 
-    # print "join_files where join_number = $join_number\n";
-    if ($join_number > 1) {
-	foreach my $format (@formats) {
-	    my @comb_names;
+    print "Join @join_fname_ar from $join_begin to $join_end\n";
+    foreach my $format (@formats) {
 
-	    # print "Combine type $format\n";
-	    $join_end = $join_begin + $join_number - 1;
+	my @files = ();
+	for my $fno ($join_begin..$join_end) {
+	    $files[$fno - $join_begin] = $join_fname_ar[$fno - $join_begin].".$format";
+	}
+	# print "Files: @files\n";
+	if (-r $files[0]) {
+	    my $dstfname;
 
 	    #
 	    # Make name for file into which to combine
 	    #
 	    $dstfname = sharpfill($sesfname, "$join_begin-$join_end");
-
-	    my @files = ();
-	    for my $fno (0..$join_number -1) {
-		$files[$fno] = $join_fname_ar[$fno].".$format";
-	    }
-	    if (-r $files[0]) {
-		#print "About to combine @files to $dstfname.$format\n";
-		$comb_routine{$format}->("$dstfname.$format", @files);
-	    }
+	    print "About to combine @files to $dstfname.$format\n";
+	    $comb_routine{$format}->("$dstfname.$format", @files);
 	}
-    } else {
-	$join_end = $join_begin;
     }
-    $join_board_high = 0;
-    @join_fname_ar = ();
-    $join_begin = $join_end + 1;
-    $join_number = 0;
-    # print "At end of join_files, begin=$join_begin and end=$join_end\n";
 }
 
 sub makesessionfromphase {
     my ($sf, $reserve, $all) = @_;
     my ($ses, $lowses, $highses);
+
+    my @join_fname_ar = ();
 
     ($nses, $seslen, $sesfname, $sesdescr) = split /:/, $TrnPhaseName[$sf];
     #
@@ -592,36 +578,51 @@ sub makesessionfromphase {
     #
     # Start actually making
     #
+    # First if session length = ? first prompt for real length
+    #
+    while ($seslen eq "?") {
+
+	my $len = promptfor("Number of boards for $sesdescr");
+	if (is_board_range_list($len)) {
+	    $seslen = $len;
+	    $seslen = "1-$seslen" if $seslen =~ /^[0-9]+$/;
+	}
+    }
+    #
     # if session length is something like 1-16,17-32 split it
     #
     @len_ar = split /,/, $seslen;
+    $len_size = $#len_ar+1;
     #
     # New combining logic
     #
+    $join_low = $join_high = 0;
+    if ($len_size > 1) {
+	$join_low = $lowses;
+	my $low_toohigh = $join_low%$len_size - 1;
+	if ($low_toohigh) {
+	    $join_low += $len_size - $low_toohigh;
+	}
+	$join_high = $join_low + $len_size - 1;
+    }
+
+    # print "ses = $ses, join = $join_low-$join_high\n";
     for $ses ($lowses..$highses) {
 	# len_index is index into array of lenghths
-	$len_index = ($ses-1) % ($#len_ar+1);
+	$len_index = ($ses-1) % $len_size;
 	# real_seslen is length of this session
 	$real_seslen = $len_ar[$len_index];
 	$real_seslen = "1-$real_seslen" if $real_seslen =~ /^[0-9]+$/;
-	($ses_low_brd, $ses_high_brd) = split('-', $real_seslen);
-	# print "seslen $seslen len_index $len_index rseslen $real_seslen, low $ses_low_brd, high $ses_high_brd\n";
 
 	$sesfnamereal = sharpfill($sesfname, $ses);
-	# print "sesfname=$sesfname, sesfnamereal=$sesfnamereal\n";
 	$sesfnamereal .= "reserve" if ($reserve);
 
 	$sesdescrreal = sharpfill($sesdescr, $ses);
 
-	if ($ses_low_brd != $join_board_high+1) {
-	    join_files($sesfname);
-	    # print "Exited join_files\n";
+	if ($ses >= $join_low) {
+	    push (@join_fname_ar, $sesfnamereal);
+	    # @join_fname_ar[$ses] = $sesfnamereal;
 	}
-	# Potential continuation to join later
-	$join_board_high = $ses_high_brd;
-	$join_number++;
-	push(@join_fname_ar, $sesfnamereal);
-	# print "Now high board = $join_board_high, number=$join_number, fnames: @join_fname_ar\n";
 
 	#
 	# get session key, and split into left half and right half to put into bigdealx
@@ -657,8 +658,16 @@ sub makesessionfromphase {
 	if ($nlines != 2) {
 	    print "An error might have occurred: output of Bigdeal:\n$output";
 	}
+
+	# Join?
+
+	if ($ses == $join_high) {
+	    join_files($sesfname, $join_low, $join_high, @join_fname_ar);
+	    $join_low += $len_size;
+	    $join_high += $len_size;
+	    @join_fname_ar = ();
+	}
     }
-    join_files($sesfname);
 }
 
 sub makesession {
@@ -777,8 +786,8 @@ sub addphase {
 	}
     }
 
-    unless (is_board_range_list($seslen)) {
-	print "Should be a number or board range list\n";
+    unless ($seslen eq "?" || is_board_range_list($seslen)) {
+	print "Should be a number or board range list, or ? if unknown\n";
 	return;
     }
 
