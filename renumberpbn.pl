@@ -17,7 +17,7 @@ sub output_hand {
     my $d = $dealerstr[$di];
     my $v = $vulnstr[$vuln_index[$vi]];
 
-    print OUTF "dealer $di $d vuln $vi $v\n";
+    # print OUTF "dealer $di $d vuln $vi $v\n";
     print OUTF "[Event \"?\"]\n";
     print OUTF "[Site \"?\"]\n";
     print OUTF "[Date \"?\"]\n";

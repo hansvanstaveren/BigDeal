@@ -1,0 +1,15 @@
+read 1186
+too few   S has SJ Theory  296.5: Set  261 percentile 0.879698%
+too many  S has ST Theory  296.5: Set  336 percentile 99.597731%
+too many  N has H9 Theory  296.5: Set  335 percentile 99.512964%
+too many  E has C9 Theory  296.5: Set  329 percentile 98.582738%
+too many  E has H8 Theory  296.5: Set  327 percentile 98.036423%
+too few   S has D8 Theory  296.5: Set  257 percentile 0.401857%
+too few   N has C6 Theory  296.5: Set  262 percentile 1.058063%
+too many  S has C4 Theory  296.5: Set  333 percentile 99.294122%
+too few   W has C4 Theory  296.5: Set  264 percentile 1.510382%
+too few   E has S2 Theory  296.5: Set  267 percentile 2.492789%
+too many  W has S2 Theory  296.5: Set  330 percentile 98.802666%
+too few   E has C2 Theory  296.5: Set  266 percentile 2.118542%
+too many  6511 Theory   33.5: Set   46 percentile 98.472883%
+S(balanced) fails runs test with zscore 0.989101731339385

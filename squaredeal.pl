@@ -188,6 +188,8 @@ sub do_menu {
     my $initspace = " " x 7;
     do {
 	print "For help on menu choice 2 type ?2, etc\n";
+	print "--------------------------------------\n";
+	print "\n";
 	print "$initspace 0)\texit program\n";
 	for my $i (0..$#descr_ar) {
 	    print "$initspace ", $i+1, ")\t$descr_ar[$i]\n";
@@ -534,7 +536,6 @@ sub join_files {
 	for my $fno ($join_begin..$join_end) {
 	    $files[$fno - $join_begin] = $join_fname_ar[$fno - $join_begin].".$format";
 	}
-	# print "Files: @files\n";
 	if (-r $files[0]) {
 	    my $dstfname;
 
@@ -875,4 +876,5 @@ showphases();
 
 do_menu($TrnPublished ? $PostPublishMenu : $PrePublishMenu);
 
+# In case run from Windows in temporary wndow
 promptfor("Type enter to quit ");
