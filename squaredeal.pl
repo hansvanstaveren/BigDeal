@@ -4,7 +4,18 @@ use Bytes::Random::Secure qw( random_string_from );
 use File::Copy qw( copy );
 use Convert::Base64 qw( encode_base64 );;
 
-$version = "2.3";
+#
+# Version of program
+#
+$version_major = 2;
+$version_minor = 3;
+$version = "$version_major.$version_minor";
+
+#
+# Version of description file
+#
+$dsc_major = 0;
+$dsc_minor = 0;
 
 $sufdsc = "sqd";
 $sufkey = "sqk";
@@ -13,7 +24,6 @@ $bigdeal = "bigdealx";
 $pat_end = qw/^[0.]$/;
 
 $undef_info = "Tbd";
-$TrnNPhases = 0;
 
 $Modified = 0;
 
@@ -102,7 +112,7 @@ sub is_board_range_list {
 	}
 	my $sublen = $2-$1+1;
 	if ($seslen && $seslen != $sublen) {
-	    print "\n\nnot all ranges same size ($len), probably mistake\n\n\n";
+	    print "\n\nnot all ranges same size ($seslen vs $sublen), probably mistake\n\n\n";
 	}
 	$seslen = $sublen;
     }
@@ -147,7 +157,7 @@ sub publish {
     for my $ph (1..$TrnNPhases) {
 	my ($nses, $seslen, $sesfname, $sesdescr) = split /:/, $TrnPhaseName[$ph];
 	for my $s (1..$nses) {
-	    $skey{"$ph,$s"} = make_secret();
+	    $session_key{"$ph,$s"} = make_secret();
 	}
     }
     $TrnPublished = 1;
@@ -155,7 +165,7 @@ sub publish {
     # Write keys and compute hash
     #
     $TrnKeyHash = writekeys("$TFile.$sufkey");
-    $Runon = 0;
+    $RunOn = 0;
     print "The tournament can now no longer be changed\n";
     print "You should publish the file $TFile.$sufdsc\n";
     print "Keep the file $TFile.$sufkey very, very secret!!\n";
@@ -179,9 +189,9 @@ sub do_menu {
 	push @command_ar, $command;
     }
     #
-    # Set Runon to 1, will stay there until end is signalled
+    # Set RunOn to 1, will stay there until end is signalled
     #
-    $Runon = 1;
+    $RunOn = 1;
     #
     # Loop: print possibilities, handle ? and call commands
     #
@@ -195,7 +205,7 @@ sub do_menu {
 	    print "$initspace ", $i+1, ")\t$descr_ar[$i]\n";
 	}
 	$ans = promptfor("Choice");
-	if ($ans =~ /^\?([0-9]*)$/) {
+	if ($ans =~ /^\?([1-9])$/) {
 	    print $explanation_ar[$1-1], "\n";
 	} elsif ($ans =~ /^[0-9]+$/) {
 	    my $ino = $ans -1;
@@ -209,7 +219,7 @@ sub do_menu {
 		#
 		# Exit was chosen
 		#
-		$Runon = 0;
+		$RunOn = 0;
 	    }
 	}
 	if ($Modified) {
@@ -218,7 +228,7 @@ sub do_menu {
 	    writetourn("$TFile.$sufdsc");
 	    $Modified = 0;
 	}
-    } while ($Runon);
+    } while ($RunOn);
 }
 
 #
@@ -230,6 +240,7 @@ sub sharpfill {
     my ($str, $n) = @_;
     my ($prf, $len, $suf, $fmt, $repl);
 
+    # Split format into before ## and the ## and the rest
     $str =~ /([^#]*)(#+)(.*)/ || return $str;
     # Hashes to replace, prf###suf
     $prf = $1;
@@ -238,6 +249,7 @@ sub sharpfill {
     $fmt = "%0${len}d";
 
     if ($n =~ /^([0-9]+)-([0-9]+)$/) {
+	# Do range of sessions
 	my $low = $1;
 	my $high = $2;
 	my $rlow = sprintf($fmt, $low);
@@ -245,6 +257,7 @@ sub sharpfill {
 	return "$prf$rlow-$rhigh$suf";
     }
 
+    # Single session
     $repl = sprintf($fmt, $n);
     return $prf.$repl.$suf;
 }
@@ -255,6 +268,9 @@ sub make_secret {
     # Secrets are made as strings containing letters and digits (62 possible characters)
     # String length = 60
     # This gives 3.495436e+107 possibilities
+    #
+    # uses:
+    # https://metacpan.org/pod/Bytes::Random::Secure
     #
     my $x = join('', ('a' .. 'z'), ('A'..'Z'), ('0'..'9'));
     my $bytes = random_string_from( $x, 60 );
@@ -271,14 +287,14 @@ sub readkeys {
     }
     my $wholefile = "";
     #
-    # Read all lines of keys and populate skey{}
+    # Read all lines of keys and populate session_key{}
     # Variable $wholefile will contain complete contents, for hashing
     #
     while (<KEYFILE>) {
 	chomp;
 	$wholefile .= "$_\r\n";
 	($hashval, $key) = split /:/;
-	$skey{$hashval} = $key;
+	$session_key{$hashval} = $key;
     }
     #
     # Make hash and check
@@ -299,7 +315,7 @@ sub readkeys {
 	my ($nses, $seslen, $sesfname, $sesdescr) = split /:/, $TrnPhaseName[$ph];
 	for my $s (1..$nses) {
 	    $hashval = "$ph,$s";
-	    unless (defined($skey{$hashval})) {
+	    unless (defined($session_key{$hashval})) {
 		print "No key found for session $hashval\nFatal error, stop using these files !!!\n";
 		return 0;
 	    }
@@ -319,7 +335,15 @@ sub readtourn {
 	# remove end of line crud
 	chomp;
 	s/\r$//;
-	# ignore comment
+
+	# Version of writing program
+
+	if (/^#.*squaredeal ([0-9]+)\.([0-9]+).*$/) {
+	    $dsc_major = $1;
+	    $dsc_minor = $2;
+	}
+
+	# ignore all other comments
 	next if /^#/;
 
 	if(s/^TN *//) {
@@ -340,6 +364,14 @@ sub readtourn {
 	    $TrnPhaseName[++$TrnNPhases] = "$nsessions:$sesboards:$sesfname:$sesdescr";
 	    $usedfname{$sesfname} = $TrnNPhases;
 	}
+    }
+    if ($dsc_major == 0 && $dsc_minor == 0) {
+	print "\n\n######\nDescription file not made by known SquareDeal version\n######\n\n";
+    }
+    unless ($dsc_major < $version_major  || $dsc_major == $version_major && $dsc_minor <= $version_minor) {
+	print "\n\n######\nSQD file written by version $dsc_major.$dsc_minor\n";
+	print "This software is older version ($version_major.$version_minor)\n";
+	print "Installing new version recommended!!\n######\n\n\n";
     }
     return 1;
 }
@@ -366,6 +398,11 @@ sub writetourn {
     close(TRNFILE);
 }
 
+#
+# Write session keys to key-file
+# Returns hash to store in description file
+#
+
 sub writekeys {
     my ($fname) = @_;
 
@@ -378,7 +415,7 @@ sub writekeys {
 	my @flds = split /:/, $TrnPhaseName[$sf];
 	my $nses = $flds[0];
 	for my $s (1..$nses) {
-	    $keys .= "$sf,$s:" . $skey{"$sf,$s"} . "\r\n";
+	    $keys .= "$sf,$s:" . $session_key{"$sf,$s"} . "\r\n";
 	}
     }
 
@@ -415,12 +452,16 @@ sub selecttourn {
 	$TFile = promptfor("Which tournament? Use + for new");
     }
     if ($TFile eq "+") {
-	$TFile = promptfor("Filename of$myfirsttourn tournament(keep under 10 chars, no spaces or other weird characters)");
+	until ($TFile =~ /^[A-Za-z][A-Za-z0-9]*$/) {
+	    $TFile = promptfor("Filename of$myfirsttourn tournament(keep shortish, alphanumerics only)");
+	}
+
 	if (readtourn("$TFile.$sufdsc", 1)) {
 	    die "Tournament already exists";
 	}
 	$TrnName = $undef_info;
 	$TrnDelayedInfo = $undef_info;
+	$TrnNPhases = 0;
 	$Modified = 1;
     } else {
 	readtourn("$TFile.$sufdsc", 0) || die;
@@ -628,16 +669,16 @@ sub makesessionfromphase {
 	#
 	# get session key, and split into left half and right half to put into bigdealx
 	#
-	$seskey = $skey{"$sf,$ses"};
-	$skl = int ((length $seskey)/2);
-	$seskeyleft = substr $seskey, 0, $skl;
-	$seskeyright = substr $seskey, $skl;
-	# print "sk=$seskey\nl=$seskeyleft, r=$seskeyright\n";
+	my $this_seskey = $session_key{"$sf,$ses"};
+	my $skl = int ((length $this_seskey)/2);
+	my $seskeyleft = substr $this_seskey, 0, $skl;
+	my $seskeyright = substr $this_seskey, $skl;
+	# print "sk=$this_seskey\nl=$seskeyleft, r=$seskeyright\n";
 
 	#
 	# delayed value is base64 encoded in case it contains weird characters
 	#
-	$DVencoding = encode_base64($TrnDelayedValue);
+	my $DVencoding = encode_base64($TrnDelayedValue);
 	# print "TDV=$TrnDelayedValue, DVE=$DVencoding\n";
 
 	print "About to make file $sesfnamereal, session $sesdescrreal\n";
@@ -876,5 +917,5 @@ showphases();
 
 do_menu($TrnPublished ? $PostPublishMenu : $PrePublishMenu);
 
-# In case run from Windows in temporary wndow
+# In case it is ran from Windows in temporary window
 promptfor("Type enter to quit ");
