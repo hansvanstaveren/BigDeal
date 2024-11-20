@@ -703,8 +703,8 @@ sub makesessionfromphase {
 
 	# Join?
 
-	if ($ses == $join_high) {
-	    join_files($sesfname, $join_low, $join_high, @join_fname_ar);
+	if ($ses == $join_high || ($ses == $highses && $ses > $join_low) ) {
+	    join_files($sesfname, $join_low, $ses, @join_fname_ar);
 	    $join_low += $len_size;
 	    $join_high += $len_size;
 	    @join_fname_ar = ();
