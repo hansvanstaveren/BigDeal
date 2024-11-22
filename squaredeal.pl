@@ -8,7 +8,7 @@ use Convert::Base64 qw( encode_base64 );;
 # Version of program
 #
 $version_major = 2;
-$version_minor = 3;
+$version_minor = 4;
 $version = "$version_major.$version_minor";
 
 #
@@ -567,34 +567,74 @@ $comb_routine{"bri"} = \&comb_bin;
 $comb_routine{"dge"} = \&comb_bin;
 $comb_routine{"ber"} = \&comb_bin;
 
-sub join_files {
-    my ($sesfname, $join_begin, $join_end, @join_fname_ar) = @_;
+#
+# New concatenation logic
+#
+my $ConcatLastboard;
+my @ConcatSessions;
+my $ConcatFilename;
+my $ConcatLastSession;
 
-    print "Join @join_fname_ar from $join_begin to $join_end\n";
+sub concat_filename {
+    my ($fname) = @_;
+
+    $ConcatFilename = $fname;
+}
+
+sub concat_add_file {
+    my ($fname, $highboard, $ses) = @_;
+
+    $ConcatLastboard = $highboard;
+    push (@ConcatSessions, $fname);
+    $ConcatLastSession = $ses;
+}
+
+sub concat_files {
+    my ($concat_begin, $concat_end) = @_;
+
+    #
+    # Make name for file into which to combine
+    #
+    my $dstfname = sharpfill("$ConcatFilename", "$concat_begin-$concat_end");
+
     foreach my $format (@formats) {
-
 	my @files = ();
-	for my $fno ($join_begin..$join_end) {
-	    $files[$fno - $join_begin] = $join_fname_ar[$fno - $join_begin].".$format";
+
+	#
+	# List of filenames for this format (might not exist)
+	#
+	for my $fno ($concat_begin..$concat_end) {
+	    $files[$fno - $concat_begin] = $ConcatSessions[$fno - $concat_begin].".$format";
 	}
 	if (-r $files[0]) {
-	    my $dstfname;
-
-	    #
-	    # Make name for file into which to combine
-	    #
-	    $dstfname = sharpfill($sesfname, "$join_begin-$join_end");
-	    print "About to combine @files to $dstfname.$format\n";
+	    # The first file exists, guess the rest too. Combine them
+	    print "Will combine @files to $dstfname.$format\n";
 	    $comb_routine{$format}->("$dstfname.$format", @files);
 	}
     }
+}
+
+
+sub concat_flush {
+    my ($concatlength);
+
+    $concatlength = $#ConcatSessions + 1;
+    if ($concatlength > 1) {
+	$concat_low_ses = $ConcatLastSession - $concatlength + 1;
+	$concat_high_ses = $ConcatLastSession;
+	concat_files($concat_low_ses, $concat_high_ses);
+    }
+    $ConcatLastboard = 0;
+    $ConcatLastSession = 0;
+    @ConcatSessions = ();
 }
 
 sub makesessionfromphase {
     my ($sf, $reserve, $all) = @_;
     my ($ses, $lowses, $highses);
 
-    my @join_fname_ar = ();
+    $ConcatLastboard = 0;
+    @ConcatSessions = ();
 
     ($nses, $seslen, $sesfname, $sesdescr) = split /:/, $TrnPhaseName[$sf];
     #
@@ -635,20 +675,8 @@ sub makesessionfromphase {
     #
     @len_ar = split /,/, $seslen;
     $len_size = $#len_ar+1;
-    #
-    # New combining logic
-    #
-    $join_low = $join_high = 0;
-    if ($len_size > 1) {
-	$join_low = $lowses;
-	my $low_toohigh = $join_low%$len_size - 1;
-	if ($low_toohigh) {
-	    $join_low += $len_size - $low_toohigh;
-	}
-	$join_high = $join_low + $len_size - 1;
-    }
 
-    # print "ses = $ses, join = $join_low-$join_high\n";
+    concat_filename($sesfname);
     for $ses ($lowses..$highses) {
 	# len_index is index into array of lenghths
 	$len_index = ($ses-1) % $len_size;
@@ -656,15 +684,12 @@ sub makesessionfromphase {
 	$real_seslen = $len_ar[$len_index];
 	$real_seslen = "1-$real_seslen" if $real_seslen =~ /^[0-9]+$/;
 
+	my ($concat_low, $concat_high) = split /\-/, $real_seslen;
+
 	$sesfnamereal = sharpfill($sesfname, $ses);
 	$sesfnamereal .= "reserve" if ($reserve);
 
 	$sesdescrreal = sharpfill($sesdescr, $ses);
-
-	if ($ses >= $join_low) {
-	    push (@join_fname_ar, $sesfnamereal);
-	    # @join_fname_ar[$ses] = $sesfnamereal;
-	}
 
 	#
 	# get session key, and split into left half and right half to put into bigdealx
@@ -673,15 +698,13 @@ sub makesessionfromphase {
 	my $skl = int ((length $this_seskey)/2);
 	my $seskeyleft = substr $this_seskey, 0, $skl;
 	my $seskeyright = substr $this_seskey, $skl;
-	# print "sk=$this_seskey\nl=$seskeyleft, r=$seskeyright\n";
 
 	#
 	# delayed value is base64 encoded in case it contains weird characters
 	#
 	my $DVencoding = encode_base64($TrnDelayedValue);
-	# print "TDV=$TrnDelayedValue, DVE=$DVencoding\n";
 
-	print "About to make file $sesfnamereal, session $sesdescrreal\n";
+	print "Making file $sesfnamereal, session $sesdescrreal, brds $concat_low to $concat_high\n";
 	$command = join(' ', $bigdeal,
 	    "-W", $seskeyleft,
 	    "-e", $seskeyright,
@@ -701,15 +724,23 @@ sub makesessionfromphase {
 	    print "An error might have occurred: output of Bigdeal:\n$output";
 	}
 
-	# Join?
+	# Concat?
 
-	if ($ses == $join_high || ($ses == $highses && $ses > $join_low) ) {
-	    join_files($sesfname, $join_low, $ses, @join_fname_ar);
-	    $join_low += $len_size;
-	    $join_high += $len_size;
-	    @join_fname_ar = ();
+	if ($concat_low != $ConcatLastboard + 1) {
+	    #
+	    # This will reset concatenation stuff
+	    # $ConcatLastboard will become 0 again
+	    #
+	    concat_flush();
+	}
+	if ($concat_low == $ConcatLastboard + 1) {
+	    concat_add_file($sesfnamereal, $concat_high, $ses);
 	}
     }
+    #
+    # Concatenate final files if needed
+    #
+    concat_flush();
 }
 
 sub makesession {
