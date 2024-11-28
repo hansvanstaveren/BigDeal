@@ -1,4 +1,8 @@
 #!/usr/bin/perl -w
+
+#
+# external routines from Packages
+#
 use Digest::SHA::PurePerl qw(sha256_hex );
 use Bytes::Random::Secure qw( random_string_from );
 use File::Copy qw( copy );
@@ -12,7 +16,7 @@ $version_minor = 4;
 $version = "$version_major.$version_minor";
 
 #
-# Version of description file
+# Version of program that made description file
 #
 $dsc_major = 0;
 $dsc_minor = 0;
@@ -48,6 +52,7 @@ add phase of tournament
 %
 Will add phase, consisting of one or more sessions
 includes names of files and description of sessions
+also number of sessions and boardnumbers per session
 %
 addphase();
 $Modified = 1;
@@ -55,6 +60,7 @@ $Modified = 1;
 publish
 %
 Marks end of preparation, tournament data can be published now
+No changes to phases after this
 %
 publish();
 $Modified = 1;
@@ -70,7 +76,7 @@ $Modified = 1;
 %%
 make session(s)
 %
-Actually makes the hands of the specified sessions
+Actually makes the hands of the specified sessions in the specified phases
 Session numbers can be a single number, a range as in 3-7, or * for all
 %
 makesession(0);
@@ -119,6 +125,33 @@ sub is_board_range_list {
     return 1;
 }
 
+#
+# Implement more complex session lengths
+# Currently only the 3x7 type
+#
+sub translate_session_length {
+    my ($seslen) = @_;
+
+    #
+    # Special case 2x16 or 3x7 or so
+    # Translate to board range list here
+    #
+    if ($seslen =~ /^([1-9][0-9]*)x([1-9][0-9]*)$/) {
+	my $ns = $1;
+	my $sl = $2;
+	my @sesar;
+	for my $s (1..$ns) {
+	    my $lowbd = ($s-1)*$sl+1;
+	    my $highbd = $s*$sl;
+	    my $r = "$lowbd-$highbd";
+	    push @sesar, $r;
+	}
+	$seslen = join ",", @sesar;
+	print "translated to $seslen\n";
+    }
+    return $seslen;
+}
+
 sub promptfor {
     my ($prompt) = @_;
     
@@ -160,11 +193,12 @@ sub publish {
 	    $session_key{"$ph,$s"} = make_secret();
 	}
     }
-    $TrnPublished = 1;
     #
     # Write keys and compute hash
     #
     $TrnKeyHash = writekeys("$TFile.$sufkey");
+
+    $TrnPublished = 1;
     $RunOn = 0;
     print "The tournament can now no longer be changed\n";
     print "You should publish the file $TFile.$sufdsc\n";
@@ -252,14 +286,14 @@ sub sharpfill {
 	# Do range of sessions
 	my $low = $1;
 	my $high = $2;
-	my $rlow = sprintf($fmt, $low);
-	my $rhigh = sprintf($fmt, $high);
-	return "$prf$rlow-$rhigh$suf";
+	my $range_low = sprintf($fmt, $low);
+	my $range_high = sprintf($fmt, $high);
+	$repl = "$range_low-$range_high";
+    } else {
+	# Single session
+	$repl = sprintf($fmt, $n);
     }
-
-    # Single session
-    $repl = sprintf($fmt, $n);
-    return $prf.$repl.$suf;
+    return "$prf$repl$suf";
 }
 
 sub make_secret {
@@ -268,13 +302,13 @@ sub make_secret {
     # Secrets are made as strings containing letters and digits (62 possible characters)
     # String length = 60
     # This gives 3.495436e+107 possibilities
+    # Which is about 357 bits, plenty to fill the 2x160 bits in BigDeal
     #
     # uses:
     # https://metacpan.org/pod/Bytes::Random::Secure
     #
-    my $x = join('', ('a' .. 'z'), ('A'..'Z'), ('0'..'9'));
-    my $bytes = random_string_from( $x, 60 );
-    return $bytes;
+    my $x = join('', ('a'..'z'), ('A'..'Z'), ('0'..'9'));
+    return random_string_from( $x, 60 );
 }
 
 sub readkeys {
@@ -338,7 +372,7 @@ sub readtourn {
 
 	# Version of writing program
 
-	if (/^#.*squaredeal ([0-9]+)\.([0-9]+).*$/) {
+	if (/^#.*[Ss]quare[Dd]eal ([0-9]+)\.([0-9]+).*$/) {
 	    $dsc_major = $1;
 	    $dsc_minor = $2;
 	}
@@ -381,7 +415,7 @@ sub writetourn {
 
     copy $fname, "$fname.bak";
     open(TRNFILE, ">", $fname ) || die;
-    print TRNFILE "# Description file of tournament for program squaredeal $version\n#\n";
+    print TRNFILE "# Description file of tournament for program SquareDeal $version\n#\n";
     print TRNFILE "TN $TrnName\n";
     print TRNFILE "DI $TrnDelayedInfo\n";
     print TRNFILE "DV $TrnDelayedValue\n" if (defined($TrnDelayedValue));
@@ -665,6 +699,7 @@ sub makesessionfromphase {
     while ($seslen eq "?") {
 
 	my $len = promptfor("Number of boards for $sesdescr");
+	$len = translate_session_length($len);
 	if (is_board_range_list($len)) {
 	    $seslen = $len;
 	    $seslen = "1-$seslen" if $seslen =~ /^[0-9]+$/;
@@ -834,28 +869,14 @@ sub addphase {
     $seslen = promptfor("Number of boards");
     return if $seslen =~ $pat_end;
 
-    #
-    # Special case 3x7 or so
-    # Translate to board range list here
-    #
-    if ($seslen =~ /^([1-9][0-9]*)x([1-9][0-9]*)$/) {
-	my $ns = $1;
-	my $sl = $2;
-	my @sesar;
-	for my $s (1..$ns) {
-	    my $lowbd = ($s-1)*$sl+1;
-	    my $highbd = $s*$sl;
-	    my $r = "$lowbd-$highbd";
-	    push @sesar, $r;
-	}
-	$seslen = join ",", @sesar;
-	print "translated to $seslen\n";
-    } else {
+    $seslen = translate_session_length($seslen);
+    if ( $seslen =~ /\(/ ) {
 	# could be complex pattern, try here
 	my $complex = complex_ses_pat($nsessions, $seslen);
 	if ($complex ne "BAD") {
 	    $seslen = $complex;
 	    print "translated to $seslen\n";
+	    print "\n### Support for this format might disappear, do you really need it?\n\n";
 	}
     }
 
@@ -900,6 +921,7 @@ sub addphase {
     }
 
     $TrnPhaseName[++$TrnNPhases] = "$nsessions:$seslen:$sesfname:$sesdescr";
+    $usedfname{$sesfname} = $TrnNPhases;
 }
 
 sub showphases {
@@ -930,7 +952,7 @@ $path = $ENV{"PATH"};
 $path = ".:$path";
 $ENV{"PATH"} = $path;
 
-print "Welcome to the tournament board manager version $version\n";
+print "Welcome to the SquareDeal tournament board manager version $version\n";
 #
 # Call bigdeal here to make one board, could be quiet if it works
 #
