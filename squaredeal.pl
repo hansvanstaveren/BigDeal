@@ -88,6 +88,27 @@ Actually makes the hands of the reserve sets of the specified sessions
 makesession(1);
 MENU
 
+sub warning {
+    my ($mes) = @_;
+
+    print "## $mes\n";
+}
+
+$nerrors = 0;
+sub error {
+    my ($mes) = @_;
+
+    print "\n####\n#### $mes\n####\n\n";
+    $nerrors++;
+}
+
+sub fatal {
+    my ($mes) = @_;
+
+    print "\n\n\n######\n###### $mes\n######\n\n\n";
+    die "Fatal Error";
+}
+
 sub isnumber {
     my ($arg) = @_;
 
@@ -118,7 +139,7 @@ sub is_board_range_list {
 	}
 	my $sublen = $2-$1+1;
 	if ($seslen && $seslen != $sublen) {
-	    print "\n\nnot all ranges same size ($seslen vs $sublen), probably mistake\n\n\n";
+	    warning("not all ranges same size ($seslen vs $sublen), probably mistake");
 	}
 	$seslen = $sublen;
     }
@@ -185,6 +206,16 @@ sub publish {
 	return;
     }
     #
+    # Test for lingering files or name clashes for other ournament
+    #
+    for my $fname (keys %usedfname) {
+	my $firstses = sharpfill($fname, 1);
+	my @files = <$firstses.*>;
+	if ($#files >= 0) {
+	    warning("Existing files @files may be overwritten, check it please");
+	}
+    }
+    #
     # Generate keys for all sessions
     #
     for my $ph (1..$TrnNPhases) {
@@ -231,6 +262,7 @@ sub do_menu {
     #
     my $initspace = " " x 7;
     do {
+	print "\n";
 	print "For help on menu choice 2 type ?2, etc\n";
 	print "--------------------------------------\n";
 	print "\n";
@@ -316,7 +348,7 @@ sub readkeys {
     my ($hashval, $key);
 
     unless (open(KEYFILE, "<:crlf", $fname)) {
-	print "Cannot open the file that should contain the keys ($fname)\n";
+	error("Cannot open the file that should contain the keys ($fname)");
 	return 0;
     }
     my $wholefile = "";
@@ -365,6 +397,7 @@ sub readtourn {
 	print "Cannot open $fname\n" unless ($shouldnotexist);;
     	return 0;
     }
+    $TrnNPhases = 0;
     while(<TRNFILE>) {
 	# remove end of line crud
 	chomp;
@@ -400,12 +433,12 @@ sub readtourn {
 	}
     }
     if ($dsc_major == 0 && $dsc_minor == 0) {
-	print "\n\n######\nDescription file not made by known SquareDeal version\n######\n\n";
+	warning("Description file not made by known SquareDeal version");
     }
     unless ($dsc_major < $version_major  || $dsc_major == $version_major && $dsc_minor <= $version_minor) {
-	print "\n\n######\nSQD file written by version $dsc_major.$dsc_minor\n";
-	print "This software is older version ($version_major.$version_minor)\n";
-	print "Installing new version recommended!!\n######\n\n\n";
+	warning("SQD file written by version $dsc_major.$dsc_minor");
+	warning("This software is older version ($version_major.$version_minor)");
+	warning("Installing new version recommended!!");
     }
     return 1;
 }
@@ -414,7 +447,7 @@ sub writetourn {
     my ($fname) = @_;
 
     copy $fname, "$fname.bak";
-    open(TRNFILE, ">", $fname ) || die;
+    open(TRNFILE, ">", $fname ) || fatal("Cannot open $fname");
     print TRNFILE "# Description file of tournament for program SquareDeal $version\n#\n";
     print TRNFILE "TN $TrnName\n";
     print TRNFILE "DI $TrnDelayedInfo\n";
@@ -456,7 +489,7 @@ sub writekeys {
     #
     # Write RAW to prevent line termination change
     #
-    open (KEYFILE, ">:raw", $fname ) || die;
+    open (KEYFILE, ">:raw", $fname ) || fatal("cannot open $fname");
     print KEYFILE $keys;
     close(KEYFILE);
 
@@ -483,26 +516,24 @@ sub selecttourn {
     } else {
 	print "Current tournaments:$trnlist\n";
 	$myfirsttourn = "";
-	$TFile = promptfor("Which tournament? Use + for new");
+	do {
+	    $TFile = promptfor("Which tournament? Use + for new");
+	} while ($TFile eq "");
     }
     if ($TFile eq "+") {
 	until ($TFile =~ /^[A-Za-z][A-Za-z0-9]*$/) {
 	    $TFile = promptfor("Filename of$myfirsttourn tournament(keep shortish, alphanumerics only)");
 	}
 
-	if (readtourn("$TFile.$sufdsc", 1)) {
-	    die "Tournament already exists";
-	}
+	readtourn("$TFile.$sufdsc", 1) && fatal("Tournament $TFile already exists");
 	$TrnName = $undef_info;
 	$TrnDelayedInfo = $undef_info;
 	$TrnNPhases = 0;
 	$Modified = 1;
     } else {
-	readtourn("$TFile.$sufdsc", 0) || die;
+	readtourn("$TFile.$sufdsc", 0) || fatal("Cannot open tournament $TFile");
 	if ($TrnPublished) {
-	    unless (readkeys("$TFile.$sufkey")) {
-	       die "Cannot continue with this tournament\n";
-	    }
+	    readkeys("$TFile.$sufkey") || fatal("Cannot continue with this tournament");
 	}
     }
 }
@@ -513,8 +544,8 @@ sub testbigdeal {
     #
     # create one pbn file to test bigdeal
     #
-    print "Will run $bigdeal once to make sure it is installed and works\n";
-    print "If this is your first time you have to set formats(first question), other questions are irrelevant\n\n";
+    warning("Will run $bigdeal once to make sure it is installed and works");
+    warning("If this is a first time you have to set formats(first question), other questions are irrelevant");
     #
     # Generate a filename that does not exist yet
     #
@@ -532,9 +563,9 @@ sub testbigdeal {
     #
     # Did it work?
     #
-    -s "$fname.pbn" || die "$bigdeal failed";
+    -s "$fname.pbn" || fatal("$bigdeal failed");
     unlink "$fname.pbn";
-    print "OK, it works\n\n";
+    warning("OK, it works");
 }
 
 sub comb_pbn {
@@ -551,9 +582,9 @@ sub comb_pbn {
     print COMBFILE "%\n";
     print COMBFILE "[Generator \"SquareDeal version $version, combining @_\"]\n";
     foreach my $infile (@_) {
-	# print "read PBN file $infile\n";
-	open INFILE, '<', $infile || die;
+	open INFILE, '<', $infile || fatal("Cannot open $infile");
 	while( my $line = <INFILE>)  {
+	    # delete headers from subfiles
 	    next if $line =~ /^%/;
 	    next if $line =~ /\[Generator/;
 	    print COMBFILE $line;
@@ -576,7 +607,7 @@ sub comb_bin {
     open COMBFILE, '>', $outputfile;
     binmode COMBFILE;
     foreach my $infile (@_) {
-	open INFILE, '<', $infile || die;
+	open INFILE, '<', $infile || fatal("Cannot open $infile");
 	binmode INFILE;
 	my $cont = '';
 	while (1) {
@@ -690,7 +721,9 @@ sub makesessionfromphase {
     } else {
 	$lowses = $highses = $ses;
     }
-    die if ($lowses < 1 || $lowses > $highses || $highses > $nses);
+    if ($lowses < 1 || $lowses > $highses || $highses > $nses) {
+	fatal("Sessions $lowses-$highses with $nses total sessions not possible");
+    }
     #
     # Start actually making
     #
@@ -785,7 +818,7 @@ sub makesession {
     # Making sessions only possible after setting Delayed Information Value
     #
     unless (defined($TrnDelayedValue)) {
-	print "Delayed value not set, do that first\n";
+	warning("Delayed value not set, do that first");
 	return;
     }
 
@@ -848,7 +881,8 @@ sub complex_ses_pat {
 }
 
 sub addphase {
-    my ($nsessions, $sesdigits, $sesfname, $seslen, $phaseno);
+    my ($nsessions, $sesdigits, $sesfname, $sesdescr, $seslen, $phaseno);
+    my ($hashes);
 
     showphases();
 
@@ -860,7 +894,7 @@ sub addphase {
     return if $nsessions =~ $pat_end;
 
     if (!isnumber($nsessions) || $nsessions <= 0) {
-	print "Should be a number(greater than zero)\n";
+	warning("Should be a number(greater than zero)");
 	return;
     }
     $sesdigits = length $nsessions;	# Length of number of sessions for ##
@@ -876,12 +910,12 @@ sub addphase {
 	if ($complex ne "BAD") {
 	    $seslen = $complex;
 	    print "translated to $seslen\n";
-	    print "\n### Support for this format might disappear, do you really need it?\n\n";
+	    warning("Support for this format might disappear, do you really need it?");
 	}
     }
 
     unless ($seslen eq "?" || is_board_range_list($seslen)) {
-	print "Should be a number or board range list, or ? if unknown\n";
+	warning("Should be a number or board range list, or ? if unknown");
 	return;
     }
 
@@ -892,7 +926,7 @@ sub addphase {
     do {
 	$sesfname = promptfor("file-prefix");
 	return if $sesfname =~ $pat_end;
-    } until $sesfname =~ /^[a-zA-Z][a-zA-Z0-9]*$/;
+    } until $sesfname =~ /^[a-zA-Z][a-zA-Z0-9_\-]*$/;
 
     if ($nsessions != 1 && $sesfname !~ /#/) {
 	$hashes = "#" x $sesdigits;
@@ -902,12 +936,14 @@ sub addphase {
 
     # Check if this works without reading file
     if (my $uf = $usedfname{$sesfname}) {
-	print "Filename already used in phase $uf\n";
+	error("Filename already used in phase $uf");
 	return;
     }
 
-    my $sesdescr = promptfor("description");
-    return if $sesdescr =~ $pat_end;
+    do {
+	$sesdescr = promptfor("description");
+	return if $sesdescr =~ $pat_end;
+    } until $sesdescr =~ /./;
 
     #
     # In case some weirdo puts a : in description
@@ -969,6 +1005,10 @@ print "Delayed Value $TrnDelayedValue\n" if (defined($TrnDelayedValue));
 showphases();
 
 do_menu($TrnPublished ? $PostPublishMenu : $PrePublishMenu);
+
+if ($nerrors) {
+    print "#### There were $nerrors errors, check it\n";
+}
 
 # In case it is ran from Windows in temporary window
 promptfor("Type enter to quit ");
