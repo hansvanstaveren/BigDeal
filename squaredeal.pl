@@ -173,13 +173,23 @@ sub translate_session_length {
     return $seslen;
 }
 
-sub promptfor {
+sub promptfor_once {
     my ($prompt) = @_;
     
     print "$prompt> ";
     $_ = <>;
     chomp;
     return $_;
+}
+
+sub promptfor {
+    my ($prompt)= @_;
+    my ($ans);
+
+    do {
+	$ans = promptfor_once($prompt);
+    } while ($ans eq "");
+    return $ans;
 }
 
 sub publish {
@@ -206,7 +216,7 @@ sub publish {
 	return;
     }
     #
-    # Test for lingering files or name clashes for other ournament
+    # Test for lingering files or name clashes with other tournament
     #
     for my $fname (keys %usedfname) {
 	my $firstses = sharpfill($fname, 1);
@@ -381,10 +391,7 @@ sub readkeys {
 	my ($nses, $seslen, $sesfname, $sesdescr) = split /:/, $TrnPhaseName[$ph];
 	for my $s (1..$nses) {
 	    $hashval = "$ph,$s";
-	    unless (defined($session_key{$hashval})) {
-		print "No key found for session $hashval\nFatal error, stop using these files !!!\n";
-		return 0;
-	    }
+	    defined($session_key{$hashval}) || fatal("Session $hashval has no key, do not use these files");
 	}
     }
     return 1;
@@ -513,26 +520,44 @@ sub selecttourn {
     if ($trnlist eq "") {
 	$TFile = "+";
 	$myfirsttourn = " your first";
+	#
+	# First tournament, at least in this folder
+	# be gentle on user
+	#
     } else {
 	print "Current tournaments:$trnlist\n";
 	$myfirsttourn = "";
-	do {
-	    $TFile = promptfor("Which tournament? Use + for new");
-	} while ($TFile eq "");
+	$TFile = promptfor("Which tournament? Use + for new");
     }
     if ($TFile eq "+") {
+	#
+	# First tournament, or user has typed +
+	#
 	until ($TFile =~ /^[A-Za-z][A-Za-z0-9]*$/) {
 	    $TFile = promptfor("Filename of$myfirsttourn tournament(keep shortish, alphanumerics only)");
 	}
 
+	#
+	# Should not exist already
+	#
 	readtourn("$TFile.$sufdsc", 1) && fatal("Tournament $TFile already exists");
+
+	#
+	# Set values for empty tournament
+	#
 	$TrnName = $undef_info;
 	$TrnDelayedInfo = $undef_info;
 	$TrnNPhases = 0;
 	$Modified = 1;
     } else {
+	#
+	# Read tournament file and set values
+	#
 	readtourn("$TFile.$sufdsc", 0) || fatal("Cannot open tournament $TFile");
 	if ($TrnPublished) {
+	    #
+	    # This tournament was already published, so keys must be there
+	    #
 	    readkeys("$TFile.$sufkey") || fatal("Cannot continue with this tournament");
 	}
     }
@@ -557,13 +582,20 @@ sub testbigdeal {
 
     #
     # Run bigdeal to make a PBN file of one board
+    # The PBN file now is not there
     #
     my $command = join(' ', $bigdeal, "-p", $fname, "-n", "1", "-f", "pbn");
     system($command);
+
     #
     # Did it work?
+    # The PBN file should now be there
     #
     -s "$fname.pbn" || fatal("$bigdeal failed");
+
+    #
+    # It worked, remove PBN file now and all OK
+    #
     unlink "$fname.pbn";
     warning("OK, it works");
 }
@@ -679,7 +711,6 @@ sub concat_files {
     }
 }
 
-
 sub concat_flush {
     my ($concatlength);
 
@@ -693,6 +724,8 @@ sub concat_flush {
     $ConcatLastSession = 0;
     @ConcatSessions = ();
 }
+
+# End of concatenation logic
 
 sub makesessionfromphase {
     my ($sf, $reserve, $all) = @_;
@@ -710,7 +743,7 @@ sub makesessionfromphase {
     if ($all) {
 	$ses = "*";
     } else {
-        $ses = promptfor("Session(s), * for all");
+	$ses = promptfor("Session(s), * for all");
     }
     if ($ses =~ /^([0-9]+)-([0-9]+)$/) {
 	$lowses = $1;
@@ -718,8 +751,11 @@ sub makesessionfromphase {
     } elsif ($ses =~ /^\*$/) {
     	$lowses = 1;
 	$highses = $nses;
-    } else {
+    } elsif (isnumber($ses)) {
 	$lowses = $highses = $ses;
+    } else {
+	error("$ses not session number or range");
+	return;
     }
     if ($lowses < 1 || $lowses > $highses || $highses > $nses) {
 	fatal("Sessions $lowses-$highses with $nses total sessions not possible");
@@ -1011,4 +1047,4 @@ if ($nerrors) {
 }
 
 # In case it is ran from Windows in temporary window
-promptfor("Type enter to quit ");
+promptfor_once("Type enter to quit ");
