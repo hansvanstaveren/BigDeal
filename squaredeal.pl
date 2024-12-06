@@ -151,26 +151,25 @@ sub is_board_range_list {
 # Currently only the 3x7 type
 #
 sub translate_session_length {
-    my ($seslen) = @_;
+    my ($ses_string) = @_;
 
     #
     # Special case 2x16 or 3x7 or so
     # Translate to board range list here
     #
-    if ($seslen =~ /^([1-9][0-9]*)x([1-9][0-9]*)$/) {
-	my $ns = $1;
-	my $sl = $2;
+    if ($ses_string =~ /^([1-9][0-9]*)x([1-9][0-9]*)$/) {
+	my $number_ses = $1;
+	my $ses_len = $2;
 	my @sesar;
-	for my $s (1..$ns) {
-	    my $lowbd = ($s-1)*$sl+1;
-	    my $highbd = $s*$sl;
-	    my $r = "$lowbd-$highbd";
-	    push @sesar, $r;
+	for my $ses (1..$number_ses) {
+	    my $lowbd = ($ses-1)*$ses_len+1;
+	    my $highbd = $ses*$ses_len;
+	    push @sesar, "$lowbd-$highbd";
 	}
-	$seslen = join ",", @sesar;
-	print "translated to $seslen\n";
+	$ses_string = join ",", @sesar;
+	print "translated to $ses_string\n";
     }
-    return $seslen;
+    return $ses_string;
 }
 
 sub promptfor_once {
@@ -184,12 +183,15 @@ sub promptfor_once {
 
 sub promptfor {
     my ($prompt)= @_;
-    my ($ans);
+    my ($answer);
 
+    #
+    # Prompt, and ignore empty responses
+    #
     do {
-	$ans = promptfor_once($prompt);
-    } while ($ans eq "");
-    return $ans;
+	$answer = promptfor_once($prompt);
+    } while ($answer eq "");
+    return $answer;
 }
 
 sub publish {
@@ -228,10 +230,10 @@ sub publish {
     #
     # Generate keys for all sessions
     #
-    for my $ph (1..$TrnNPhases) {
-	my ($nses, $seslen, $sesfname, $sesdescr) = split /:/, $TrnPhaseName[$ph];
-	for my $s (1..$nses) {
-	    $session_key{"$ph,$s"} = make_secret();
+    for my $phase (1..$TrnNPhases) {
+	my ($nses, $seslen, $sesfname, $sesdescr) = split /:/, $TrnPhaseName[$phase];
+	for my $session (1..$nses) {
+	    $session_key{"$phase,$session"} = make_secret();
 	}
     }
     #
@@ -270,34 +272,36 @@ sub do_menu {
     #
     # Loop: print possibilities, handle ? and call commands
     #
-    my $initspace = " " x 7;
+    my $prompt = "Choice";
+    my $initspace = " " x ( length($prompt)+2 );
     do {
 	print "\n";
 	print "For help on menu choice 2 type ?2, etc\n";
 	print "--------------------------------------\n";
 	print "\n";
-	print "$initspace 0)\texit program\n";
+	#
+	# Show menu, incleading 0 option
+	#
+	print $initspace, "0)\texit program\n";
 	for my $i (0..$#descr_ar) {
-	    print "$initspace ", $i+1, ")\t$descr_ar[$i]\n";
+	    print $initspace, $i+1, ")\t$descr_ar[$i]\n";
 	}
-	$ans = promptfor("Choice");
-	if ($ans =~ /^\?([1-9])$/) {
-	    print $explanation_ar[$1-1], "\n";
-	} elsif ($ans =~ /^[0-9]+$/) {
-	    my $ino = $ans -1;
-	    if ($ino >= 0) {
-		unless (defined($command_ar[$ino])) {
-		    print "Command unknown\n";
-		} else {
-		    eval $command_ar[$ino];
-		}
-	    } else {
-		#
-		# Exit was chosen
-		#
+	#
+	# Get wanted action
+	#
+	$ans = promptfor($prompt);
+	if ($ans =~ /^(\??)([0-9])$/) {
+	    if ($1 && $2>0) {
+		my $expl = $explanation_ar[$2-1];
+		print "$expl\n" if ($expl);
+	    } elsif ($2 == 0) {
 		$RunOn = 0;
+	    } else {
+		my $cmd = $command_ar[$2-1];
+		eval $cmd if ($cmd);
 	    }
 	}
+
 	if ($Modified) {
 	    # keep .sqd file up to date after each mod.
 	    # This will survive crashes, interrupts, etc...
@@ -355,7 +359,7 @@ sub make_secret {
 
 sub readkeys {
     my ($fname) = @_;
-    my ($hashval, $key);
+    my ($ses_ident, $key);
 
     unless (open(KEYFILE, "<:crlf", $fname)) {
 	error("Cannot open the file that should contain the keys ($fname)");
@@ -369,8 +373,8 @@ sub readkeys {
     while (<KEYFILE>) {
 	chomp;
 	$wholefile .= "$_\r\n";
-	($hashval, $key) = split /:/;
-	$session_key{$hashval} = $key;
+	($ses_ident, $key) = split /:/;
+	$session_key{$ses_ident} = $key;
     }
     #
     # Make hash and check
@@ -387,11 +391,11 @@ sub readkeys {
     #
     # Check if we have keys for all sessions of all phases
     #
-    for my $ph (1..$TrnNPhases) {
-	my ($nses, $seslen, $sesfname, $sesdescr) = split /:/, $TrnPhaseName[$ph];
-	for my $s (1..$nses) {
-	    $hashval = "$ph,$s";
-	    defined($session_key{$hashval}) || fatal("Session $hashval has no key, do not use these files");
+    for my $phase (1..$TrnNPhases) {
+	my ($nses, $seslen, $sesfname, $sesdescr) = split /:/, $TrnPhaseName[$phase];
+	for my $session (1..$nses) {
+	    $ses_ident = "$phase,$session";
+	    defined($session_key{$ses_ident}) || fatal("Session $ses_ident has no key, do not use these files");
 	}
     }
     return 1;
@@ -485,11 +489,11 @@ sub writekeys {
     # It matters because of checksum, cannot leave it to OS
     #
     my $keys = "";
-    for my $sf (1..$TrnNPhases) {
-	my @flds = split /:/, $TrnPhaseName[$sf];
+    for my $phase (1..$TrnNPhases) {
+	my @flds = split /:/, $TrnPhaseName[$phase];
 	my $nses = $flds[0];
-	for my $s (1..$nses) {
-	    $keys .= "$sf,$s:" . $session_key{"$sf,$s"} . "\r\n";
+	for my $session (1..$nses) {
+	    $keys .= "$phase,$session:" . $session_key{"$phase,$session"} . "\r\n";
 	}
     }
 
@@ -728,13 +732,13 @@ sub concat_flush {
 # End of concatenation logic
 
 sub makesessionfromphase {
-    my ($sf, $reserve, $all) = @_;
+    my ($phase, $reserve, $all) = @_;
     my ($ses, $lowses, $highses);
 
     $ConcatLastboard = 0;
     @ConcatSessions = ();
 
-    ($nses, $seslen, $sesfname, $sesdescr) = split /:/, $TrnPhaseName[$sf];
+    ($nses, $seslen, $sesfname, $sesdescr) = split /:/, $TrnPhaseName[$phase];
     #
     # Found phase and information, now which session
     # something like 3-6 allowed
@@ -798,7 +802,7 @@ sub makesessionfromphase {
 	#
 	# get session key, and split into left half and right half to put into bigdealx
 	#
-	my $this_seskey = $session_key{"$sf,$ses"};
+	my $this_seskey = $session_key{"$phase,$ses"};
 	my $skl = int ((length $this_seskey)/2);
 	my $seskeyleft = substr $this_seskey, 0, $skl;
 	my $seskeyright = substr $this_seskey, $skl;
@@ -862,8 +866,8 @@ sub makesession {
     #
     # * means all sessions from all phases
     #
-    my $sf = promptfor("Session phase, * for all");
-    if ($sf =~ /^\*$/) {
+    my $phase = promptfor("Session phase, * for all");
+    if ($phase =~ /^\*$/) {
 	# do all
 	
 	for my $ph (1..$TrnNPhases) {
@@ -871,12 +875,12 @@ sub makesession {
 	}
 	return;
     }
-    if ( !isnumber($sf) || $sf <= 0 || $sf > $TrnNPhases) {
-	print "$sf not a valid phase number\n";
+    if ( !isnumber($phase) || $phase <= 0 || $phase > $TrnNPhases) {
+	print "$phase not a valid phase number\n";
 	return;
     }
 
-    makesessionfromphase($sf, $reserve, 0);
+    makesessionfromphase($phase, $reserve, 0);
 }
 
 #
@@ -918,7 +922,6 @@ sub complex_ses_pat {
 
 sub addphase {
     my ($nsessions, $sesdigits, $sesfname, $sesdescr, $seslen, $phaseno);
-    my ($hashes);
 
     showphases();
 
@@ -962,11 +965,10 @@ sub addphase {
     do {
 	$sesfname = promptfor("file-prefix");
 	return if $sesfname =~ $pat_end;
-    } until $sesfname =~ /^[a-zA-Z][a-zA-Z0-9_\-]*$/;
+    } until $sesfname =~ /^[a-zA-Z][a-zA-Z0-9#_\-]*$/;
 
     if ($nsessions != 1 && $sesfname !~ /#/) {
-	$hashes = "#" x $sesdigits;
-	$sesfname .= $hashes;
+	$sesfname .= "#" x $sesdigits;
 	print "file-prefix changed to $sesfname\n";
     }
 
@@ -987,8 +989,7 @@ sub addphase {
     $sesdescr =~ s/\://g;
 
     if ($nsessions != 1 && $sesdescr !~ /#/) {
-	$hashes = " #/$nsessions";
-	$sesdescr .= $hashes;
+	$sesdescr .= " #/$nsessions";
 	print "session description changed to $sesdescr\n";
     }
 
@@ -1005,9 +1006,9 @@ sub showphases {
 	return;
     }
     print "Tournament phases:\n";
-    for my $ph (1..$TrnNPhases) {
-	my ($nses, $seslen, $sesfname, $sesdescr) = split /:/, $TrnPhaseName[$ph];
-	print "Phase $ph: $nses sessions of $seslen boards on file $sesfname: $sesdescr\n"; 
+    for my $phase (1..$TrnNPhases) {
+	my ($nses, $seslen, $sesfname, $sesdescr) = split /:/, $TrnPhaseName[$phase];
+	print "Phase $phase: $nses sessions of $seslen boards on file $sesfname: $sesdescr\n"; 
     }
 }
 
@@ -1025,10 +1026,10 @@ $path = ".:$path";
 $ENV{"PATH"} = $path;
 
 print "Welcome to the SquareDeal tournament board manager version $version\n";
+
 #
 # Call bigdeal here to make one board, could be quiet if it works
 #
-
 testbigdeal();
 
 selecttourn();
