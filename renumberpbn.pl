@@ -64,14 +64,35 @@ sub northmalize {
     return "[Deal \"N:$hand_north $hand_east $hand_south $hand_west\"]";
 }
 
-$ranges = shift @ARGV;
+sub handle_flag {
+    my ($flag) = @_;
 
-while (<>) {
-    next unless /^\[Deal /;
-    $orig_deal = $_;
-    $trlat_deal = northmalize($_);
-    print "Deal before and after\n$orig_deal\n$trlat_deal\n";
-    push (@deals, $trlat_deal);
+    print "flag $flag\n";
+}
+
+foreach (@ARGV) {
+    if (/=/) {
+	handle_flag($_);
+    } else {
+	push (@files, $_);
+    }
+}
+
+$ranges = "1-7,8-14,15-21";
+# $ranges = shift @ARGV;
+
+for my $f (@files) {
+    open ( PBNFILE, $f) || die $f;
+
+    while (<PBNFILE>) {
+	next unless /^\[Deal /;
+	$orig_deal = $_;
+	$trlat_deal = northmalize($_);
+	# print "Deal before and after\n$orig_deal\n$trlat_deal\n";
+	push (@deals, $trlat_deal);
+    }
+
+    close ( PBNFILE );
 }
 
 print "Number of deals ", $#deals+1, "\n";
@@ -99,6 +120,7 @@ while ($#deals >= 0) {
     output_header();
     for $dnum ($lowbrd..$highbrd) {
 	$deal = shift(@deals);
+	last unless($deal);
 	output_hand($dnum, $deal);
     }
     close OUTF;
