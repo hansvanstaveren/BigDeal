@@ -41,11 +41,37 @@ sub output_header {
     print OUTF "% PBN 2.1\n% EXPORT\n%\n[Generator \"Renumberpbn\"]\n";
 }
 
+my %compass_shift = (
+  "N" => 0,
+  "E" => 1,
+  "S" => 2,
+  "W" => 3,
+);
+
+sub northmalize {
+    my ($deal) = @_;
+
+    $deal =~ /^\[Deal "([NESW]):([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*) *"]/;
+    my @hands = ($2, $3, $4, $5);
+    # print "$deal\nDealer $1 hands @hands\n";
+    $shift = $compass_shift{$1};
+    # print "Shift = $shift\n";
+    $hand_north = $hands[(0+$shift)%4];
+    $hand_east = $hands[(1+$shift)%4];
+    $hand_south = $hands[(2+$shift)%4];
+    $hand_west = $hands[(3+$shift)%4];
+    # print "N:$hand_north, E:$hand_east\n";
+    return "[Deal \"N:$hand_north $hand_east $hand_south $hand_west\"]";
+}
+
 $ranges = shift @ARGV;
 
 while (<>) {
     next unless /^\[Deal /;
-    push (@deals, $_);
+    $orig_deal = $_;
+    $trlat_deal = northmalize($_);
+    print "Deal before and after\n$orig_deal\n$trlat_deal\n";
+    push (@deals, $trlat_deal);
 }
 
 print "Number of deals ", $#deals+1, "\n";
