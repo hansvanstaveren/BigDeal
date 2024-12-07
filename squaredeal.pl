@@ -960,11 +960,15 @@ sub addphase {
 
     print "For following two questions a row of # signs in your answer will be replaced by the session number\n";
     print "So rr# will become rr9, rr10, rr11 or rr## will become rr09, rr10, rr11\n";
-    print "If you do not specify the #'es they will be added if needed\n\n";
+    print "If you do not specify the #'es they will be added automatically by program\n\n";
 
     do {
 	$sesfname = promptfor("file-prefix");
 	return if $sesfname =~ $pat_end;
+	if ($sesfname =~ /#+.*[^#].*#/) {
+	    warning("$sesfname contains two or more strings of #, not allowed");
+	    $sesfname = "@";	# Will not be allowed
+	}
     } until $sesfname =~ /^[a-zA-Z][a-zA-Z0-9#_\-]*$/;
 
     if ($nsessions != 1 && $sesfname !~ /#/) {
