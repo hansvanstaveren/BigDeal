@@ -1,7 +1,7 @@
 # Description file of tournament for program SquareDeal 2.4
 #
 TN Winter Championships 2025
-DI DJI3002
+DI DJI3001
 # Description of phases of tournament
 # Per phase a line with SN nessions:nboards:filename:description
 SN 10:1-10,11-20,21-30:SWISS##:Qualification Swiss #/10
