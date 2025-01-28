@@ -38,7 +38,7 @@ sub output_hand {
 
 sub output_header {
 
-    print OUTF "% PBN 2.1\n% EXPORT\n%\n[Generator \"Renumberpbn\"]\n";
+    print OUTF "% PBN 2.1\n% EXPORT\n%\n[Generator \"PbnPart\"]\n";
 }
 
 my %compass_shift = (
@@ -53,21 +53,49 @@ sub northmalize {
 
     $deal =~ /^\[Deal "([NESW]):([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*) *"]/;
     my @hands = ($2, $3, $4, $5);
-    # print "$deal\nDealer $1 hands @hands\n";
-    $shift = $compass_shift{$1};
-    # print "Shift = $shift\n";
-    $hand_north = $hands[(0+$shift)%4];
-    $hand_east = $hands[(1+$shift)%4];
-    $hand_south = $hands[(2+$shift)%4];
-    $hand_west = $hands[(3+$shift)%4];
-    # print "N:$hand_north, E:$hand_east\n";
+    my $h_shift = $compass_shift{$1};
+    $hand_north = $hands[(0+$h_shift)%4];
+    $hand_east = $hands[(1+$h_shift)%4];
+    $hand_south = $hands[(2+$h_shift)%4];
+    $hand_west = $hands[(3+$h_shift)%4];
     return "[Deal \"N:$hand_north $hand_east $hand_south $hand_west\"]";
+}
+
+#
+# Implement more complex session lengths
+# Currently only the 3x7 type
+#
+sub translate_session_length {
+    my ($ses_string) = @_;
+
+    #
+    # Special case 2x16 or 3x7 or so
+    # Translate to board range list here
+    #
+    if ($ses_string =~ /^([1-9][0-9]*)x([1-9][0-9]*)$/) {
+	my $number_ses = $1;
+	my $ses_len = $2;
+	my @sesar;
+	for my $ses (1..$number_ses) {
+	    my $lowbd = ($ses-1)*$ses_len+1;
+	    my $highbd = $ses*$ses_len;
+	    push @sesar, "$lowbd-$highbd";
+	}
+	$ses_string = join ",", @sesar;
+	print "translated to $ses_string\n";
+    }
+    return $ses_string;
 }
 
 sub handle_flag {
     my ($flag) = @_;
 
     print "flag $flag\n";
+    if ($flag =~ /boards=(.*)/) {
+	my $brdlist = translate_session_length($1);
+	@range_arg = split /,/, $brdlist;
+	print "Ranges given: @range_arg\n";
+    }
 }
 
 foreach (@ARGV) {
@@ -78,7 +106,7 @@ foreach (@ARGV) {
     }
 }
 
-$ranges = "1-7,8-14,15-21";
+# $ranges = "1-7,8-14,15-21";
 # $ranges = shift @ARGV;
 
 for my $f (@files) {
@@ -97,8 +125,12 @@ for my $f (@files) {
 
 print "Number of deals ", $#deals+1, "\n";
 
-@range_arg = split /,/, $ranges;
-print "Ranges given: @range_arg\n";
+if ($#range_arg < 0) {
+    print "No board range list given\nQuitting.....\n";
+    die;
+}
+# @range_arg = split /,/, $ranges;
+# print "Ranges given: @range_arg\n";
 
 #
 # Output files are numbered
