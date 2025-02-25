@@ -138,6 +138,10 @@ sub is_board_range_list {
 	    return 0;
 	}
 	my $sublen = $2-$1+1;
+	if ($sublen <= 0) {
+	    error("$len decreasing range");
+	    return 0;
+	}
 	if ($seslen && $seslen != $sublen) {
 	    warning("not all ranges same size ($seslen vs $sublen), probably mistake");
 	}
@@ -290,7 +294,7 @@ sub do_menu {
 	# Get wanted action
 	#
 	$ans = promptfor($prompt);
-	if ($ans =~ /^(\??)([0-9])$/) {
+	if ($ans =~ /^(\??)([0-9])$/) {	# regexp second ? is 0 or 1, looks confusing
 	    if ($1 && $2>0) {
 		my $expl = $explanation_ar[$2-1];
 		print "$expl\n" if ($expl);
