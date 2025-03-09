@@ -562,11 +562,14 @@ sub selecttourn {
 	# Read tournament file and set values
 	#
 	readtourn("$TFile.$sufdsc", 0) || fatal("Cannot open tournament $TFile");
+	$TrnKeysAvailable = 0;
 	if ($TrnPublished) {
 	    #
 	    # This tournament was already published, so keys must be there
 	    #
-	    readkeys("$TFile.$sufkey") || fatal("Cannot continue with this tournament");
+	    if (readkeys("$TFile.$sufkey")) {
+		$TrnKeysAvailable = 1;
+	    }
 	}
     }
 }
@@ -863,6 +866,14 @@ sub makesession {
     #
     unless (defined($TrnDelayedValue)) {
 	warning("Delayed value not set, do that first");
+	return;
+    }
+
+    #
+    # We should have read the keys to continue
+    #
+    unless ($TrnKeysAvailable) {
+	warning("No keys available");
 	return;
     }
 
