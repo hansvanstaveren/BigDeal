@@ -12,7 +12,7 @@ use Convert::Base64 qw( encode_base64 );;
 # Version of program
 #
 $version_major = 2;
-$version_minor = 4;
+$version_minor = 5;
 $version = "$version_major.$version_minor";
 
 #
@@ -54,8 +54,9 @@ Will add phase, consisting of one or more sessions
 includes names of files and description of sessions
 also number of sessions and boardnumbers per session
 %
-addphase();
-$Modified = 1;
+if(addphase()) {
+    $Modified = 1;
+}
 %%
 publish
 %
@@ -376,6 +377,10 @@ sub readkeys {
     #
     while (<KEYFILE>) {
 	chomp;
+	#
+	# Make sure $wholefile will contain \r\n separators
+	# otherwise keyhash will be wrong
+	#
 	$wholefile .= "$_\r\n";
 	($ses_ident, $key) = split /:/;
 	$session_key{$ses_ident} = $key;
@@ -898,43 +903,6 @@ sub makesession {
     makesessionfromphase($phase, $reserve, 0);
 }
 
-#
-# accept stuff like 1-16(1-16,17-32) meaning 1-16 and then repeatedly 1-16 and 17-32 until all sessions accounted for
-#
-sub complex_ses_pat {
-    my ($nsessions, $pat) = @_;
-
-    #
-    # What could be valid
-    # return "BAD" if bogus
-    #
-    # Could be cleaned up
-    #
-    unless ($pat =~ /([0-9,\-]*)\(([0-9,\-]*)\)/) {
-	return "BAD";
-    }
-
-    my @first = split(',', $1);
-    my @second = split(',', $2);
-    #
-    # first is before (
-    # second is between ()
-    #
-    # Make array of first, followed by multiple seconds unless >= nsessions
-    #
-    my @all = @first;
-    while ($#all+1 < $nsessions) {
-	push (@all, @second);
-    }
-
-    #
-    # Truncate to just enough sessions
-    #
-    my @answer = @all[0..$nsessions-1];
-
-    return join(',', @answer);
-}
-
 sub addphase {
     my ($nsessions, $sesdigits, $sesfname, $sesdescr, $seslen, $phaseno);
 
@@ -945,32 +913,23 @@ sub addphase {
     print "Enter . on a line to exit without adding phase\n";
 
     $nsessions = promptfor("Number of sessions");
-    return if $nsessions =~ $pat_end;
+    return 0 if $nsessions =~ $pat_end;
 
     if (!isnumber($nsessions) || $nsessions <= 0) {
 	warning("Should be a number(greater than zero)");
-	return;
+	return 0;
     }
     $sesdigits = length $nsessions;	# Length of number of sessions for ##
 
     print "Number of boards per session: like 7 or 1-7 or 1-7,8-14,15-21 which is also 3x7\n";
     $seslen = promptfor("Number of boards");
-    return if $seslen =~ $pat_end;
+    return 0 if $seslen =~ $pat_end;
 
     $seslen = translate_session_length($seslen);
-    if ( $seslen =~ /\(/ ) {
-	# could be complex pattern, try here
-	my $complex = complex_ses_pat($nsessions, $seslen);
-	if ($complex ne "BAD") {
-	    $seslen = $complex;
-	    print "translated to $seslen\n";
-	    warning("Support for this format might disappear, do you really need it?");
-	}
-    }
 
     unless ($seslen eq "?" || is_board_range_list($seslen)) {
 	warning("Should be a number or board range list, or ? if unknown");
-	return;
+	return 0;
     }
 
     print "For following two questions a row of # signs in your answer will be replaced by the session number\n";
@@ -979,7 +938,7 @@ sub addphase {
 
     do {
 	$sesfname = promptfor("file-prefix");
-	return if $sesfname =~ $pat_end;
+	return 0 if $sesfname =~ $pat_end;
 	if ($sesfname =~ /#+.*[^#].*#/) {
 	    warning("$sesfname contains two or more strings of #, not allowed");
 	    $sesfname = "@";	# Will not be allowed
@@ -994,12 +953,12 @@ sub addphase {
     # Check if this works without reading file
     if (my $uf = $usedfname{$sesfname}) {
 	error("Filename already used in phase $uf");
-	return;
+	return 0;
     }
 
     do {
 	$sesdescr = promptfor("description");
-	return if $sesdescr =~ $pat_end;
+	return 0 if $sesdescr =~ $pat_end;
     } until $sesdescr =~ /./;
 
     #
@@ -1014,6 +973,7 @@ sub addphase {
 
     $TrnPhaseName[++$TrnNPhases] = "$nsessions:$seslen:$sesfname:$sesdescr";
     $usedfname{$sesfname} = $TrnNPhases;
+    return 1
 }
 
 sub showphases {
