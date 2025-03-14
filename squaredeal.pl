@@ -6,7 +6,7 @@
 use Digest::SHA::PurePerl qw( sha256_hex );
 use Bytes::Random::Secure qw( random_string_from );
 use File::Copy qw( copy );
-use Convert::Base64 qw( encode_base64 );;
+use Convert::Base64 qw( encode_base64 );
 
 #
 # Version of program
@@ -805,9 +805,21 @@ sub makesessionfromphase {
 	$len_index = ($ses-1) % $len_size;
 	# real_seslen is length of this session
 	$real_seslen = $len_ar[$len_index];
+	# convert single number, like 16, to range, so 1-16
 	$real_seslen = "1-$real_seslen" if $real_seslen =~ /^[0-9]+$/;
 
 	my ($concat_low, $concat_high) = split /\-/, $real_seslen;
+
+	#
+	# If this file cannot continue a concatenation list, flush current list
+	#
+	if ($concat_low != $ConcatLastboard + 1) {
+	    #
+	    # This will reset concatenation stuff
+	    # $ConcatLastboard will become 0 again
+	    #
+	    concat_flush();
+	}
 
 	$sesfnamereal = sharpfill($sesfname, $ses);
 	$sesfnamereal .= "reserve" if ($reserve);
@@ -836,7 +848,6 @@ sub makesessionfromphase {
 	    "-p", $sesfnamereal,
 	    "-n", $real_seslen
 		    );
-	# print "command : $command\n";
 	#
 	# Run bigdeal command and check if nothing weird comes out
 	# This check might be made more serious
@@ -847,15 +858,8 @@ sub makesessionfromphase {
 	    print "An error might have occurred: output of Bigdeal:\n$output";
 	}
 
-	# Concat?
+	# Can this file later be concatenated?
 
-	if ($concat_low != $ConcatLastboard + 1) {
-	    #
-	    # This will reset concatenation stuff
-	    # $ConcatLastboard will become 0 again
-	    #
-	    concat_flush();
-	}
 	if ($concat_low == $ConcatLastboard + 1) {
 	    concat_add_file($sesfnamereal, $concat_high, $ses);
 	}
