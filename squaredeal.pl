@@ -3,7 +3,7 @@
 #
 # external routines from Packages
 #
-use Digest::SHA::PurePerl qw(sha256_hex );
+use Digest::SHA::PurePerl qw( sha256_hex );
 use Bytes::Random::Secure qw( random_string_from );
 use File::Copy qw( copy );
 use Convert::Base64 qw( encode_base64 );;
@@ -63,8 +63,9 @@ publish
 Marks end of preparation, tournament data can be published now
 No changes to phases after this
 %
-publish();
-$Modified = 1;
+if(publish()) {
+    $Modified = 1;
+}
 MENU
 
 $PostPublishMenu =<<'MENU';
@@ -206,21 +207,21 @@ sub publish {
     #
     if ($TrnName eq $undef_info) {
 	print "Tournament Name has not been set, publishing not allowed\n";
-	return;
+	return 0;
     }
     #
     # Delayed information description must be set
     #
     if ($TrnDelayedInfo eq $undef_info) {
 	print "Tournament Delayed Information has not been set, publishing not allowed\n";
-	return;
+	return 0;
     }
     #
     # Should have at least one phase
     #
     if ($TrnNPhases <= 0) {
 	print "No phases have been defined, publishing not allowed\n";
-	return;
+	return 0;
     }
     #
     # Test for lingering files or name clashes with other tournament
@@ -251,6 +252,8 @@ sub publish {
     print "The tournament can now no longer be changed\n";
     print "You should publish the file $TFile.$sufdsc\n";
     print "Keep the file $TFile.$sufkey very, very secret!!\n";
+
+    return 1;
 }
 
 sub do_menu {
