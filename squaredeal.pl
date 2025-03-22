@@ -425,6 +425,7 @@ sub readtourn {
 	# remove end of line crud
 	chomp;
 	s/\r$//;
+	s/\s*$//;
 
 	# Version of writing program
 
