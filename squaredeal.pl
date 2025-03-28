@@ -1,6 +1,20 @@
 #!/usr/bin/perl -w
 
 #
+# TODO
+#
+# There is a minor weakness left, the DI info is not protected, which could lead to the
+# following minor trouble:
+# ORG publishes SQD file, for example stating he will use DJI of June 1 as Delayed Information
+# external party copies this file, but changes his copy to say DJI June 2
+# At the end of the tournament the external party accuses the ORG of having modified his promise
+# because he wanted to make different hands
+#
+# Highly unlikely, and will fail immediately if another copy is made
+# Anyhow, this can be fixed by including the DI info in the keyhash
+#
+
+#
 # external routines from Packages
 #
 use Digest::SHA::PurePerl qw( sha256_hex );
@@ -14,6 +28,8 @@ use Convert::Base64 qw( encode_base64 );
 $version_major = 2;
 $version_minor = 5;
 $version = "$version_major.$version_minor";
+
+$bigdealbits = 320;
 
 #
 # Version of program that made description file
@@ -73,7 +89,7 @@ set delayed information value
 %
 This enters the actual delayed information, as described at publication time
 %
-$TrnDelayedValue = promptfor("Delayed info value");
+getDV();
 $Modified = 1;
 %%
 make session(s)
@@ -351,10 +367,20 @@ sub sharpfill {
 }
 
 sub make_secret {
+    my($bitsperchar, $keylen);
 
     #
+    # Calculate how long a string to make for correcty number of bigdealbits
+    # Strange factor is just to get at answer 60 for 320 bits
+    # Future expansion possible here
+    #
+    $bitsperchar=log(62)/log(2);
+    $keylen = $bigdealbits / $bitsperchar;
+    $keylen *= 1.1166;		# Strategic reserve
+    $keylen = int($keylen);
+    #
     # Secrets are made as strings containing letters and digits (62 possible characters)
-    # String length = 60
+    # When string length = 60
     # This gives 3.495436e+107 possibilities
     # Which is about 357 bits, plenty to fill the 2x160 bits in BigDeal
     #
@@ -362,12 +388,25 @@ sub make_secret {
     # https://metacpan.org/pod/Bytes::Random::Secure
     #
     my $x = join('', ('a'..'z'), ('A'..'Z'), ('0'..'9'));
-    return random_string_from( $x, 60 );
+    return random_string_from( $x, $keylen );
+}
+
+sub getDV {
+    my ($dv);
+
+    $dv = promptfor("Delayed info value");
+    $TrnDelayedValue = $dv;
+    $TrnDelayedValue =~ s/^\s+//;
+    $TrnDelayedValue =~ s/\s+$//;
+    if ($TrnDelayedValue ne $dv) {
+	warning("Spacing at front or end removed, Delayed Value is now '$TrnDelayedValue'");
+    }
 }
 
 sub readkeys {
     my ($fname) = @_;
     my ($ses_ident, $key);
+    my ($nkeys, $keylen, $totalkeylen);
 
     unless (open(KEYFILE, "<:crlf", $fname)) {
 	error("Cannot open the file that should contain the keys ($fname)");
@@ -378,6 +417,8 @@ sub readkeys {
     # Read all lines of keys and populate session_key{}
     # Variable $wholefile will contain complete contents, for hashing
     #
+    $nkeys = 0;
+    $totalkeylen = 0;
     while (<KEYFILE>) {
 	chomp;
 	#
@@ -387,6 +428,12 @@ sub readkeys {
 	$wholefile .= "$_\r\n";
 	($ses_ident, $key) = split /:/;
 	$session_key{$ses_ident} = $key;
+	$nkeys++;
+	$keylen = length($key);
+	$totalkeylen += $keylen;
+	if ($keylen < 40) {
+	    warning("Short key for session $ses_ident");
+	}
     }
     #
     # Make hash and check
@@ -410,6 +457,10 @@ sub readkeys {
 	    defined($session_key{$ses_ident}) || fatal("Session $ses_ident has no key, do not use these files");
 	}
     }
+    #
+    # Some statistics
+    #
+    $KeyStats = sprintf("Read keys for %d sessions, average length %.1f characters\n", $nkeys, $totalkeylen/$nkeys);
     return 1;
 }
 
@@ -1027,6 +1078,8 @@ print "Delayed Info $TrnDelayedInfo\n";
 print "Delayed Value $TrnDelayedValue\n" if (defined($TrnDelayedValue));
 
 showphases();
+
+print $KeyStats if ($KeyStats);
 
 do_menu($TrnPublished ? $PostPublishMenu : $PrePublishMenu);
 
