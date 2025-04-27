@@ -8,7 +8,7 @@
 #include "bigdeal.h"
 #include <stdio.h>
 
-static dword MDbuf[RMDdwords];		/* Contains state of RIPEMD-160 */
+static dword MDbuf[HASHdwords];		/* Contains state of RIPEMD-160 */
 static byte variousbytes[64];
 static int vbytesindex;
 
@@ -96,7 +96,7 @@ collect_finish(byte *hash)
 			nrandombits, nhashbytes);
 
 #endif
-	for (i=0; i<RMDbytes; i+=4) {
+	for (i=0; i<HASHbytes; i+=4) {
 		hash[i]   =  MDbuf[i>>2];         /* implicit cast to byte  */
 		hash[i+1] = (MDbuf[i>>2] >>  8);  /*  extracts the 8 least  */
 		hash[i+2] = (MDbuf[i>>2] >> 16);  /*  significant bits.     */

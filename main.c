@@ -20,7 +20,7 @@ Cannot use both hashes
 #endif
 
 #define MESSLEN		100			/* Length of input buffer(s) */
-#define ENTROPY_TO_COLLECT	RMDsize*4/3	/* 33% extra safety/paranoia */
+#define ENTROPY_TO_COLLECT	HASHsize*4/3	/* 33% extra safety/paranoia */
 
 progparams_t parameters;	/* Program parameters go in here */
 FILE *flog;			/* Not used in safe version */
@@ -285,12 +285,12 @@ random_set(char *hashstr, byte *sr)
 {
 	int i;
 
-	if (strlen(hashstr) != 2*RMDbytes) {
+	if (strlen(hashstr) != 2*HASHbytes) {
 		fprintf(stderr, "Argument %s should be %d characters long\n",
-			hashstr, 2*RMDbytes);
+			hashstr, 2*HASHbytes);
 		exit(-1);
 	}
-	for (i=0; i<RMDbytes; i++)
+	for (i=0; i<HASHbytes; i++)
 		sr[i] = hexval(hashstr[2*i+1]) | (hexval(hashstr[2*i])<<4);
 }
 
@@ -303,16 +303,16 @@ random_set(char *hashstr, byte *sr)
 #endif /* BIGDEALX */
 
 static byte *
-RMDhash(byte *value, int length)
+hash(byte *value, int length)
 /*
  * Hashes value of length bytes using RIPEMD160
  *
  * Returns pointer to 20 bytes hashcode
  */
 {
-	dword         MDbuf[RMDdwords];		/* contains (A, B, C, D(, E)) */
+	dword         MDbuf[HASHdwords];		/* contains (A, B, C, D(, E)) */
 	dword	      X[16];			/* current 16 word chunk      */
-	static byte   hashcode[RMDbytes];	/* for final hash-value       */
+	static byte   hashcode[HASHbytes];	/* for final hash-value       */
 	unsigned int  i;			/* counter                    */
 	int	      nbytes;			/* bytes not yet processed    */
 
@@ -331,7 +331,7 @@ RMDhash(byte *value, int length)
 	/* finish: */
 	MDfinish(MDbuf, value, length, 0);
 
-	for (i=0; i<RMDbytes; i+=4) {
+	for (i=0; i<HASHbytes; i+=4) {
 		hashcode[i]   =  MDbuf[i>>2];        /* implicit cast to byte */
 		hashcode[i+1] = (MDbuf[i>>2] >>  8); /*  extracts the 8 least */
 		hashcode[i+2] = (MDbuf[i>>2] >> 16); /*  significant bits.    */
@@ -425,8 +425,8 @@ setboards(char *a) {
  */
 static struct {
 	byte	seed_sequence[4];	/* sequence number in PRNG sequence */
-	byte	seed_random[RMDbytes];	/* 160 bits collected at start */
-	byte	seed_owner[RMDbytes];	/* 160 bit hash of owner ident */
+	byte	seed_random[HASHbytes];	/* 160 bits collected at start */
+	byte	seed_owner[HASHbytes];	/* 160 bit hash of owner ident */
 } seed;
 
 int
@@ -608,11 +608,11 @@ main (int argc, char *argv[])
 	/*
 	 * Start checking for duplicate hashes, and log current hash
 	 */
-	for (i=0; i<RMDbytes; i++) {
+	for (i=0; i<HASHbytes; i++) {
 		message[2*i  ] = "0123456789ABCDEF"[seed.seed_random[i]/16];
 		message[2*i+1] = "0123456789ABCDEF"[seed.seed_random[i]%16];
 	}
-	message[2*RMDbytes] = 0;
+	message[2*HASHbytes] = 0;
 	if (!hashstr && !wizard)
 		checkduphash(message);		/* If this fails .... */
 
@@ -633,8 +633,8 @@ main (int argc, char *argv[])
 	 * In Wizard mode use wizard string iso owner
 	 */
 	ownerp = wizard ? wizard : default_owner;
-	hashcode = RMDhash((byte *) ownerp, strlen(ownerp));
-	memcpy(seed.seed_owner, hashcode, RMDbytes);
+	hashcode = hash((byte *) ownerp, strlen(ownerp));
+	memcpy(seed.seed_owner, hashcode, HASHbytes);
 
 	seqno = 0;
 	for(i = parameters.pp_lowboard; i <= parameters.pp_highboard; i++) { 
@@ -656,7 +656,7 @@ main (int argc, char *argv[])
 			/*
 			 * Run all the bits through the hash
 			 */
-			hashcode = RMDhash((byte *) &seed, sizeof(seed));
+			hashcode = hash((byte *) &seed, sizeof(seed));
 			/*
 			 * Take the first L bytes(96 bits) as a candidate
 			 * hand number
