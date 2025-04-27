@@ -1,8 +1,4 @@
 /*
- * $Header: /home/sater/bridge/bigdeal/RCS/bigdeal.h,v 1.7 2000/08/27 14:13:20 sater Exp $
- */
-
-/*
  * Program wide defines for Big Deal
  */
 

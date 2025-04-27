@@ -1,7 +1,3 @@
-/*
- * $Header: /home/sater/bridge/bigdeal/RCS/mp.h,v 1.5 2000/02/28 14:00:21 sater Exp $
- */
-
 void mp96_zero(byte *b);
 void mp96_one(byte *b);
 void mp96_assign(byte *b, byte *b1);

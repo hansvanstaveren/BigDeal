@@ -18,6 +18,9 @@
 progparams_t parameters;	/* Program parameters go in here */
 FILE *flog;			/* Not used in safe version */
 
+byte nr_bridge_deals[L];
+#define goedel(bignum)  (mp96_cmp(bignum, nr_bridge_deals) < 0)
+
 static int
 readline(FILE *ifile, char *buf, int len)
 /*
@@ -331,21 +334,19 @@ RMDhash(byte *value, int length)
 	return (byte *)hashcode;
 }
 
-static int
-goedel(dl_num *dnp)
+static void
+init_goedel()
 /*
- * Checks whether the contents of dnp is a number less than the number
- * of bridge deals.
+ * Initialize nr_bridge_deals
  */
 {
+	byte a[L], b[L];
+
 	/*
 	 * This number is precomputed
-	 */
-	static byte nr_bridge_deals[L] =
+	static byte precomputed_nr_bridge_deals[L] =
 		{ 173,85,227,21,99,77,218,101,139,244,146,0};
-
-#ifdef BIGDEALX
-	byte a[L], b[L];
+	 */
 
 	n_over_k(52,13,a);
 	n_over_k(39,13,b);
@@ -356,24 +357,15 @@ goedel(dl_num *dnp)
 	/*
 	 * This gives a the value of the number of bridge deals
 	 * =( (52 over 13) times (39 over 13) times (26 over 13) )
-	 * Now let us check our internal calculations
 	 *
-	 * If it is wrong we miscalculated somewhere
-	 */
 
-	if (mp96_cmp(a, nr_bridge_deals) != 0) {
+	if (mp96_cmp(a, precomputed_nr_bridge_deals) != 0) {
 		fprintf(stderr, "Miscalculation\n");
-		/*
-		 * print_goedel(stderr, (dl_num*) a);
-		 * print_goedel(stderr, (dl_num*) nr_bridge_deals);
-		 */
 		exit(-1);
 	}
-#endif
+	 */
 
-	if (mp96_cmp(dnp->dn_num, nr_bridge_deals) >= 0)
-		return 0; /* too big, not a hand number */
-	return 1;
+	mp96_assign(nr_bridge_deals, a);
 }
 
 extern int nrandombits;
@@ -517,6 +509,7 @@ main (int argc, char *argv[])
 
 	read_init_file(os_init_file_name(), 1);
 	binomial_start();
+	init_goedel();
 	/*
 	 * Read number of boards to generate
 	 */
@@ -662,11 +655,12 @@ main (int argc, char *argv[])
 			 * hand number
 			 */
 			memcpy(dnumber.dn_num, hashcode, L);
-		} while(!goedel(&dnumber));
+		} while(!goedel(dnumber.dn_num));
 		/*
 		 * Ok, got one
 		 * Print it in all desired formats
 		 */
+		/* fprintf(stderr, "Hand %d made from hash %ld\n", i, seqno); */
 		output_hand(i, &dnumber);
 	}
 
