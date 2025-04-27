@@ -3,6 +3,7 @@
 #include <string.h>
 #include <getopt.h>
 
+#include "hash.h"
 #include "types.h"
 #include "rmd160.h"
 #include "bigdeal.h"
@@ -11,6 +12,12 @@
 #include "output.h"
 #include "os.h"
 #include "collect.h"
+
+#ifdef HASH_RMD160
+#ifdef HASH_SHA256
+Cannot use both hashes
+#endif
+#endif
 
 #define MESSLEN		100			/* Length of input buffer(s) */
 #define ENTROPY_TO_COLLECT	RMDsize*4/3	/* 33% extra safety/paranoia */

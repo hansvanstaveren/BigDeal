@@ -2,6 +2,7 @@
  * Collect various pieces of randomness
  */
 
+#include "hash.h"
 #include "types.h"
 #include "rmd160.h"
 #include "bigdeal.h"
