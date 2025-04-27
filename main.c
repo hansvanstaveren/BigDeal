@@ -316,9 +316,15 @@ hash(byte *value, int length)
 	unsigned int  i;			/* counter                    */
 	int	      nbytes;			/* bytes not yet processed    */
 
+	/*
+	 * The MDinit name might change wirh SHA256, check it
+	 */
 	/* initialize */
 	MDinit(MDbuf);
 
+	/*
+	 * The 16/64 stuff might change with SHA256, check it
+	 */
 	/* Process value in 16-word chunks */
 	for (nbytes=length; nbytes>=64; nbytes-=64) {
 		for (i=0; i<16; i++) {
