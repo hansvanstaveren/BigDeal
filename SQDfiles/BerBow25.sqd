@@ -1,0 +1,19 @@
+# Description file of tournament for program SquareDeal 2.4
+#
+TN World Team Championships 2025
+DI DJI2507
+# Description of phases of tournament
+# Per phase a line with SN nessions:nboards:filename:description
+SN 23:1-14,15-28:RR##:Round Robin #/23
+SN 8:1-14,15-28:QF#:Quarter Finals #/8
+SN 8:1-14,15-28:SF#:Semi Finals #/8
+SN 8:1-14,15-28:FIN#:Final&PO #/8
+SN 2:1-16,17-23:TRSNR16#:Transnational R16 #/2
+SN 2:1-16,17-32:TRSNQF#:Transnational QF #/2
+SN 3:1-16,17-32:BAMQ#:BAM Qualification #/3
+SN 3:1-16,17-32:BAMSF#:BAMSF #/3
+SN 3:1-16,17-32:BAMFIN#:BAM Final #/3
+SN 1:17-21:BAMF18EX:BAM Fin18 extra
+SN 1:17-18:BAMF26EX:BAM Fin26 Extra
+SN 1:17-20:BAMF14EX:BAM Fin14 extra
+KH 8f2655810d091c3087e4ebab5a3a8bd5624d002b23456ff5e262b3ee4b43c6b3

@@ -1,0 +1,14 @@
+# Description file of tournament for program SquareDeal 2.4
+#
+TN WBF Youth Team Championships 2025
+DI DJI040725
+# Description of phases of tournament
+# Per phase a line with SN nessions:nboards:filename:description
+SN 19:1-8,9-16,17-24,25-32:RR##:Round Robin #/19
+SN 4:1-14,15-28:QF#:Quarter Finals #/4
+SN 4:1-14,15-28:SF#:Semifinals #/4
+SN 4:1-14,15-28:FIN#:Final #/4
+SN 3:1-16,17-32:BAMQ#:BAM Qualification #/3
+SN 3:1-16,17-32:BAMSF#:BAM Semifinals #/3
+SN 3:1-20,1-16,17-32:BAMFIN#:BAM Final #/3
+KH 2a61ac4652e7a21363c49e29cd05c0e0ced1a51f849d853e33857874a751d511

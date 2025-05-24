@@ -1,0 +1,9 @@
+# Description file of tournament for program SquareDeal 2.4
+#
+TN European Open Championships 2025 - Mixed and Open Pairs Finals
+DI DJI03062025
+# Description of phases of tournament
+# Per phase a line with SN nessions:nboards:filename:description
+SN 3:1-18,1-16,17-32:MIXPFIN#:Mixed Pairs Final #/3
+SN 3:1-18,1-16,17-32:OPFIN#:Open Pairs Final #/3
+KH 122719b9815e994c137099c2f13909fac3f4567e26604babb62262865a02b610

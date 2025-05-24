@@ -1,0 +1,24 @@
+# Description file of tournament for program SquareDeal 2.4
+#
+TN European Open Championships 2025
+DI DJI030625
+# Description of phases of tournament
+# Per phase a line with SN nessions:nboards:filename:description
+SN 10:1-10,11-20,21-30:MIXSW##:Mixed Swiss #/10
+SN 4:1-14,15-28:MXR32#:Mixed Round of 32 #/4
+SN 4:1-14,15-28:MIXR16#:Mixed Round of 16 #/4
+SN 4:1-14,15-28:MIXQF#:Mixed Quarter Finals #/4
+SN 4:1-14,15-28:MIXSF#:Mixed Semifinals #/4
+SN 4:1-14,15-28:MIXFIN#:Mixed Final #/4
+SN 15:1-10,11-20,21-30:OPSW10B##:>Open Swiss 10x15 #/15
+SN 12:1-14,15-28:OPSW14B##:Open Swiss 12x14 #/12
+SN 4:1-14,15-28:OPR32#:Open Teams Round of 32 #/4
+SN 4:1-14,15-28:OPR16#:Open Teams Round of 16 #/4
+SN 4:1-14,15-28:OPQF#:Open Teams Quarter Finals #/4
+SN 4:1-14,15-28:OPSF#:Open Teams Semifinals #/4
+SN 4:1-14,15-28:OPFIN#:Open Teams Final #/4
+SN 6:1-16,17-32:MXPQUAL#:Mixed Pairs Qualification #/6
+SN 6:1-16,17-32:MIXPSF#:Mixed Pairs Semifinals #/6
+SN 6:1-16,17-32:OPPQUAL#:Open Pairs Qualification #/6
+SN 6:1-16,17-32:OPPSF#:Open Pairs Semifinals #/6
+KH 22b2e7b4ba9f6e0a06b14b886408be703cca4443f98b8a575e08904de0ab0934
