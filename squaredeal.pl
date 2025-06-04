@@ -217,6 +217,7 @@ sub promptfor {
 }
 
 sub publish {
+    my (%keys_used);
 
     #
     # Tournament Name must be set
@@ -255,7 +256,10 @@ sub publish {
     for my $phase (1..$TrnNPhases) {
 	my ($nses, $seslen, $sesfname, $sesdescr) = split /:/, $TrnPhaseName[$phase];
 	for my $session (1..$nses) {
-	    $session_key{"$phase,$session"} = make_secret();
+	    my $this_key = make_secret();
+	    die "Duplicate key!!" if ($keys_used{$this_key});
+	    $keys_used{$this_key} = 1;
+	    $session_key{"$phase,$session"} = $this_key;
 	}
     }
     #
