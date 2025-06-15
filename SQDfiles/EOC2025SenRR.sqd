@@ -1,0 +1,11 @@
+# Description file of tournament for program SquareDeal 2.4
+#
+TN European Transnational Seniors Teams Championship
+DI DJI160625
+# Description of phases of tournament
+# Per phase a line with SN nessions:nboards:filename:description
+SN 9:1-16,17-32:SENRR9x16#:Senior Teams RR 9x16 #/9
+SN 12:1-14,15-28:SENRR12x14##:Senior Round Robin 12x14 #/12
+SN 9:1-16,17-32:WOMRR16x9#:Women Round Robin 16x9 #/9
+SN 12:1-14,15-28:WOMRR12x14##:Women Round Robin 12x14 #/12
+KH 37831b299f378dadb1cd447bc2dee6b19d4838e6ccc4d44b844aa4e52ce3bba9
