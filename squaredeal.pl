@@ -595,7 +595,7 @@ sub selecttourn {
 	print "\nCurrent tournaments:\n";
 	foreach my $trnfile (@trnlist) {
 	    my $trnprefix = $trnfile;
-	    $trnprefix =~ s/\..*//;
+	    $trnprefix =~ s/\.$sufdsc//;
 
 	    open SQDFILE, '<', "$trnfile" || fatal("Cannot open $trnfile");
 	    while(<SQDFILE>) {
