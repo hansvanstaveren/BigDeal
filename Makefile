@@ -26,13 +26,13 @@ bigdealx:	$(COMMONOBJS) $(EXTNOBJS) $(OS).o
 clean:
 	-rm $(COMMONOBJS) $(SAFEOBJS) $(EXTNOBJS) $(OS).o
 
-mainx.o:	main.c
+mainx.o:	main.c types.h rmd160.h bigdeal.h mp.h binomial.h output.h os.h collect.h
 	$(CC) $(CFLAGS) -c -DBIGDEALX main.c -o mainx.o 
 
-collectx.o:	collect.c
+collectx.o:	collect.c types.h rmd160.h bigdeal.h
 	$(CC) $(CFLAGS) -c -DBIGDEALX  collect.c -o collectx.o 
 
-outputx.o:	output.c mp.h bigdeal.h
+outputx.o:	output.c types.h bigdeal.h binomial.h
 	$(CC) $(CFLAGS) -c -DBIGDEALX output.c -o outputx.o 
 
 main.o: main.c types.h rmd160.h bigdeal.h mp.h binomial.h output.h os.h collect.h
