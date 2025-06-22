@@ -32,7 +32,7 @@ mainx.o:	main.c
 collectx.o:	collect.c
 	$(CC) $(CFLAGS) -c -DBIGDEALX  collect.c -o collectx.o 
 
-outputx.o:	output.c mp.h
+outputx.o:	output.c mp.h bigdeal.h
 	$(CC) $(CFLAGS) -c -DBIGDEALX output.c -o outputx.o 
 
 main.o: main.c types.h rmd160.h bigdeal.h mp.h binomial.h output.h os.h collect.h

@@ -580,16 +580,11 @@ sub writekeys {
 }
 
 sub selecttourn {
-    my (@x, $trnlist);
+    my (@trnlist);
 
-    @x = <*.$sufdsc>;
-    $trnlist="";
-    for (@x) {
-	s/\.$sufdsc//;
-	$trnlist .= " $_";
-    }
+    @trnlist = <*.$sufdsc>;
 
-    if ($trnlist eq "") {
+    if (!@trnlist) {
 	$TFile = "+";
 	$myfirsttourn = " your first";
 	#
@@ -597,7 +592,19 @@ sub selecttourn {
 	# be gentle on user
 	#
     } else {
-	print "Current tournaments:$trnlist\n";
+	print "\nCurrent tournaments:\n";
+	foreach my $trnfile (@trnlist) {
+	    my $trnprefix = $trnfile;
+	    $trnprefix =~ s/\..*//;
+
+	    open SQDFILE, '<', "$trnfile" || fatal("Cannot open $trnfile");
+	    while(<SQDFILE>) {
+		if (/^TN (.*)/) {
+		    printf "%-10s: %s\n", $trnprefix, $1;
+		}
+	    }
+	    close SQDFILE;
+	}
 	$myfirsttourn = "";
 	$TFile = promptfor("Which tournament? Use + for new");
     }
