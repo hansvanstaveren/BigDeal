@@ -29,17 +29,20 @@ $version_major = 2;
 $version_minor = 5;
 $version = "$version_major.$version_minor";
 
-$bigdealbits = 320;
-
 #
 # Version of program that made description file
 #
 $dsc_major = 0;
 $dsc_minor = 0;
 
+#
+# BigDeal parameters
+#
+$bigdeal_prog = "bigdealx";
+$bigdeal_seedbits = 320;
+
 $sufdsc = "sqd";
 $sufkey = "sqk";
-$bigdeal = "bigdealx";
 
 $pat_end = qw/^[0.]$/;
 
@@ -143,7 +146,7 @@ sub is_board_range_list {
     # Board range can be a number or a range so '16' or 15-21'
     # A comma separated list of the latter is also OK
     #
-    if ($arg =~ /^$/) {
+    if ($arg eq "") {
 	return 0;
     }
     if (isnumber($arg)) {
@@ -374,12 +377,12 @@ sub make_secret {
     my($bitsperchar, $keylen);
 
     #
-    # Calculate how long a string to make for correcty number of bigdealbits
-    # Strange factor is just to get at answer 60 for 320 bits
+    # Calculate how long a string to make for correct number of bigdeal_seedbits
+    # Strange factor is just to get at answer 60 for 320 bits, historical
     # Future expansion possible here
     #
     $bitsperchar=log(62)/log(2);
-    $keylen = $bigdealbits / $bitsperchar;
+    $keylen = $bigdeal_seedbits / $bitsperchar;
     $keylen *= 1.1166;		# Strategic reserve
     $keylen = int($keylen);
     #
@@ -651,7 +654,7 @@ sub testbigdeal {
     #
     # create one pbn file to test bigdeal
     #
-    warning("Will run $bigdeal once to make sure it is installed and works");
+    warning("Will run $bigdeal_prog once to make sure it is installed and works");
     warning("If this is a first time you have to set formats(first question), other questions are irrelevant");
     #
     # Generate a filename that does not exist yet
@@ -666,14 +669,14 @@ sub testbigdeal {
     # Run bigdeal to make a PBN file of one board
     # The PBN file now is not there
     #
-    my $command = join(' ', $bigdeal, "-p", $fname, "-n", "1", "-f", "pbn");
+    my $command = join(' ', $bigdeal_prog, "-p", $fname, "-n", "1", "-f", "pbn");
     system($command);
 
     #
     # Did it work?
     # The PBN file should now be there
     #
-    -s "$fname.pbn" || fatal("$bigdeal failed");
+    -s "$fname.pbn" || fatal("$bigdeal_prog failed");
 
     #
     # It worked, remove PBN file now and all OK
@@ -830,7 +833,7 @@ sub makesessionfromphase {
     if ($ses =~ /^([0-9]+)-([0-9]+)$/) {
 	$lowses = $1;
 	$highses = $2;
-    } elsif ($ses =~ /^\*$/) {
+    } elsif ($ses eq "*") {
     	$lowses = 1;
 	$highses = $nses;
     } elsif (isnumber($ses)) {
@@ -840,7 +843,8 @@ sub makesessionfromphase {
 	return;
     }
     if ($lowses < 1 || $lowses > $highses || $highses > $nses) {
-	fatal("Sessions $lowses-$highses with $nses total sessions not possible");
+	error("Sessions $lowses-$highses with $nses total sessions not possible");
+	return;
     }
     #
     # Start actually making
@@ -903,7 +907,7 @@ sub makesessionfromphase {
 	my $DVencoding = encode_base64($TrnDelayedValue);
 
 	print "Making file $sesfnamereal, session $sesdescrreal, brds $concat_low to $concat_high\n";
-	$command = join(' ', $bigdeal,
+	$command = join(' ', $bigdeal_prog,
 	    "-W", $seskeyleft,
 	    "-e", $seskeyright,
 	    "-e", $DVencoding,
@@ -913,6 +917,7 @@ sub makesessionfromphase {
 		    );
 	#
 	# Run bigdeal command and check if nothing weird comes out
+	# Just counting for two lines now
 	# This check might be made more serious
 	#
 	$output = `$command`;
@@ -922,6 +927,7 @@ sub makesessionfromphase {
 	}
 
 	# Can this file later be concatenated?
+	# It might if boardnumbers are sequential to it
 
 	if ($concat_low == $ConcatLastboard + 1) {
 	    concat_add_file($sesfnamereal, $concat_high, $ses);
@@ -957,7 +963,7 @@ sub makesession {
     # * means all sessions from all phases
     #
     my $phase = promptfor("Session phase, * for all");
-    if ($phase =~ /^\*$/) {
+    if ($phase eq "*") {
 	# do all
 	
 	for my $ph (1..$TrnNPhases) {
