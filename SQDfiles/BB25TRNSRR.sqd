@@ -1,0 +1,8 @@
+# Description file of tournament for program SquareDeal 2.4
+#
+TN Transnational Round Robin
+DI DJI2208
+# Description of phases of tournament
+# Per phase a line with SN nessions:nboards:filename:description
+SN 12:1-14,15-28:TRNSRR##:TRNS Swiss #/12
+KH 7121009b28ae7857117519229604d03000e0468f0810d57f1dd62f9c051ba2e3
