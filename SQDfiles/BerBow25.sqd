@@ -1,7 +1,8 @@
-# Description file of tournament for program SquareDeal 2.4
+# Description file of tournament for program SquareDeal 2.5
 #
 TN World Team Championships 2025
 DI DJI2507
+DV 44901,92
 # Description of phases of tournament
 # Per phase a line with SN nessions:nboards:filename:description
 SN 23:1-14,15-28:RR##:Round Robin #/23
