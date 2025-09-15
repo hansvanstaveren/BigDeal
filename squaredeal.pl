@@ -26,7 +26,7 @@ use Convert::Base64 qw( encode_base64 );
 # Version of program
 #
 $version_major = 2;
-$version_minor = 5;
+$version_minor = 6;
 $version = "$version_major.$version_minor";
 
 #
@@ -255,6 +255,7 @@ sub publish {
     }
     #
     # Generate keys for all sessions
+    # Paranoia, but check for duplicate keys
     #
     for my $phase (1..$TrnNPhases) {
 	my ($nses, $seslen, $sesfname, $sesdescr) = split /:/, $TrnPhaseName[$phase];
@@ -399,9 +400,13 @@ sub make_secret {
 }
 
 sub getDV {
-    my ($dv);
+    my ($di, $dv);
 
-    $dv = promptfor("Delayed info value");
+    $di = $TrnDelayedInfo;
+    if ($di =~ /^dji/i) {
+	print "Standard format of DJI is 12,345.67 so using thousands separator , and decimal point .\n";
+    }
+    $dv = promptfor("Delayed info value($di)");
     $TrnDelayedValue = $dv;
     $TrnDelayedValue =~ s/^\s+//;
     $TrnDelayedValue =~ s/\s+$//;
