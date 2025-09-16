@@ -400,12 +400,22 @@ sub make_secret {
 }
 
 sub getDI {
+    my ($input_di, $di);
 
     print "Delayed Info description should be without uncertainty\n";
     print "White space at beginning or end will not be used, inside only single space allowed\n";
     print "When Delayed Info is a number the format should be unambiguous\n";
     print "\n";
-    $TrnDelayedInfo = promptfor("Delayed info description");
+    do {
+	$di = $input_di = promptfor("Delayed info description");
+	$di =~ s/^\s+//;
+	$di =~ s/\s+$//;
+	$di =~ s/\s+/ /g;
+    } until ($di);
+    if ($input_di ne $di) {
+	warning("White space changed, Delayed Info is now '$di'");
+    }
+    $TrnDelayedInfo = $di;
 }
 
 sub getDV {
