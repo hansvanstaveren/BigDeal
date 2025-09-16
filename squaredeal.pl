@@ -64,7 +64,7 @@ set delayed information description
 This describes which delayed information will be used after publishing and before dealing
 For example: Dow Jones Industrial Average on Friday April 13
 %
-$TrnDelayedInfo = promptfor("Delayed info description");
+getDI();
 $Modified = 1;
 %%
 add phase of tournament
@@ -399,19 +399,36 @@ sub make_secret {
     return random_string_from( $x, $keylen );
 }
 
+sub getDI {
+
+    print "Delayed Info description should be without uncertainty\n";
+    print "White space at beginning or end will not be used, inside only single space allowed\n";
+    print "When Delayed Info is a number the format should be unambiguous\n";
+    print "\n";
+    $TrnDelayedInfo = promptfor("Delayed info description");
+}
+
 sub getDV {
     my ($di, $dv);
 
     $di = $TrnDelayedInfo;
+    #
+    # Give instructions for certain delayed info's
+    #
     if ($di =~ /^dji/i) {
-	print "Standard format of DJI is 12,345.67 so using thousands separator , and decimal point .\n";
+	print "Standard format of DJI is 12,345.67 so using thousands separator comma and decimal point\n";
     }
+
     $dv = promptfor("Delayed info value($di)");
     $TrnDelayedValue = $dv;
+    #
+    # Remove spacing at begin and end, and change spacing inside to single space
+    #
     $TrnDelayedValue =~ s/^\s+//;
     $TrnDelayedValue =~ s/\s+$//;
+    $TrnDelayedValue =~ s/\s+/ /g;
     if ($TrnDelayedValue ne $dv) {
-	warning("Spacing at front or end removed, Delayed Value is now '$TrnDelayedValue'");
+	warning("White space changed, Delayed Value is now '$TrnDelayedValue'");
     }
 }
 
