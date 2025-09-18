@@ -399,13 +399,20 @@ sub make_secret {
     return random_string_from( $x, $keylen );
 }
 
+sub warnDV {
+
+    print "White space at beginning or end will not be used, inside only single space allowed\n";
+    print "When Delayed Info contains a number periods and commas will be deleted from it\n";
+    print "\n";
+    print "The Delayed Info is always just a string, so 123.0 and 123.00 are different!\n";
+    print "\n";
+}
+
 sub getDI {
     my ($input_di, $di);
 
     print "Delayed Info description should be without uncertainty\n";
-    print "White space at beginning or end will not be used, inside only single space allowed\n";
-    print "When Delayed Info is a number the format should be unambiguous\n";
-    print "\n";
+    warnDV();
     do {
 	$di = $input_di = promptfor("Delayed info description");
 	$di =~ s/^\s+//;
@@ -413,32 +420,29 @@ sub getDI {
 	$di =~ s/\s+/ /g;
     } until ($di);
     if ($input_di ne $di) {
-	warning("White space changed, Delayed Info is now '$di'");
+	warning("Whitespace changed, Delayed Info is now '$di'");
     }
     $TrnDelayedInfo = $di;
 }
 
 sub getDV {
-    my ($di, $dv);
+    my ($dv);
 
-    $di = $TrnDelayedInfo;
-    #
-    # Give instructions for certain delayed info's
-    #
-    if ($di =~ /^dji/i) {
-	print "Standard format of DJI is 12,345.67 so using thousands separator comma and decimal point\n";
-    }
-
-    $dv = promptfor("Delayed info value($di)");
+    warnDV();
+    $dv = promptfor("Delayed info value($TrnDelayedInfo)");
     $TrnDelayedValue = $dv;
     #
-    # Remove spacing at begin and end, and change spacing inside to single space
+    # Canonize:
+    #  change all strings of whitespace to one space
+    #  delete leading and trailing spaces
+    #  delete . and , from numbers
     #
     $TrnDelayedValue =~ s/^\s+//;
     $TrnDelayedValue =~ s/\s+$//;
     $TrnDelayedValue =~ s/\s+/ /g;
+    $TrnDelayedValue =~ s/([0-9])[\,\.]([0-9])/$1$2/g;
     if ($TrnDelayedValue ne $dv) {
-	warning("White space changed, Delayed Value is now '$TrnDelayedValue'");
+	warning("Input changed, Delayed Value is now '$TrnDelayedValue'");
     }
 }
 
