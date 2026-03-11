@@ -1,0 +1,13 @@
+Sample procedure for downloading and running bigdeal under MacOS
+
+1. Download the files (in ~/Downloads)
+2. Open a terminal windox and go to wherever you put them. In my case cd ~/Downloads
+3. Make them executable: chmod +x bigdeal (and bigdealx)   (Should already be done, just in case)
+4. Run it: ./bigdeal
+5. You get a popup that tells you that this is not allowed. Click Done
+6. Go to "privacy and security" in the system settings. Scroll down to where it says "bigdeal was blocked to protect your mac". Click "allow anyway".
+7. Run it again: ./bigdeal
+8. You'll be prompted for your password.
+9. And then it finally runs.
+
+This is a 1 time exercise, the next time your mac will remember that this is a valid program and just run it.
