@@ -1,7 +1,7 @@
 Sample procedure for downloading and running bigdeal under MacOS
 
 1. Download the files (in ~/Downloads)
-2. Open a terminal windox and go to wherever you put them. In my case cd ~/Downloads
+2. Open a terminal window and go to wherever you put them. In my case cd ~/Downloads
 3. Make them executable: chmod +x bigdeal (and bigdealx)   (Should already be done, just in case)
 4. Run it: ./bigdeal
 5. You get a popup that tells you that this is not allowed. Click Done
