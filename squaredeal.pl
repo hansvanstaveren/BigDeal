@@ -964,7 +964,7 @@ sub makesessionfromphase {
 	$eflagarg .= $sk_right;
 	$eflagarg .= $DVencoding;
 	$eflagarg .= $reserve == 0 ? "original" : "reserve";
-	$eflagarg .= "ses$ses" if ($sesnum==0);
+	$eflagarg .= "ses$ses" if ($key_sesnum==0);
 	$command = join(' ', $bigdeal_prog, "-W", $sk_left,
 			"-e", $eflagarg, "-p", $sesfnamereal, "-n", $real_seslen);
 	#
