@@ -15,6 +15,13 @@
 #
 
 #
+# Number of sessions per phase can now be undetermined:
+# - Allow that when creating
+# - Generate one key for the whole phase something like 3:0
+# - When generating add "session$number with a -e flag
+#
+
+#
 # external routines from Packages
 #
 use Digest::SHA::PurePerl qw( sha256_hex );
@@ -26,7 +33,7 @@ use Convert::Base64 qw( encode_base64 );
 # Version of program
 #
 $version_major = 2;
-$version_minor = 6;
+$version_minor = 7;
 $version = "$version_major.$version_minor";
 
 #
@@ -44,7 +51,7 @@ $bigdeal_seedbits = 320;
 $sufdsc = "sqd";
 $sufkey = "sqk";
 
-$pat_end = qw/^[0.]$/;
+$pat_end = qw/^[.]$/;
 
 $undef_info = "Tbd";
 
@@ -259,7 +266,9 @@ sub publish {
     #
     for my $phase (1..$TrnNPhases) {
 	my ($nses, $seslen, $sesfname, $sesdescr) = split /:/, $TrnPhaseName[$phase];
-	for my $session (1..$nses) {
+	# lowbnd for phase with variable sessions
+	my $lowbnd = $nses != 0;
+	for my $session ($lowbnd..$nses) {
 	    my $this_key = make_secret();
 	    die "Duplicate key!!" if ($keys_used{$this_key});
 	    $keys_used{$this_key} = 1;
@@ -599,7 +608,9 @@ sub writekeys {
     for my $phase (1..$TrnNPhases) {
 	my @flds = split /:/, $TrnPhaseName[$phase];
 	my $nses = $flds[0];
-	for my $session (1..$nses) {
+	# lowbnd for phase with variable sessions
+	my $lowbnd = $nses != 0;
+	for my $session ($lowbnd..$nses) {
 	    $keys .= "$phase,$session:" . $session_key{"$phase,$session"} . "\r\n";
 	}
     }
@@ -855,7 +866,7 @@ sub makesessionfromphase {
     $ConcatLastboard = 0;
     @ConcatSessions = ();
 
-    ($nses, $seslen, $sesfname, $sesdescr) = split /:/, $TrnPhaseName[$phase];
+    my ($nses, $seslen, $sesfname, $sesdescr) = split /:/, $TrnPhaseName[$phase];
     #
     # Found phase and information, now which session
     # something like 3-6 allowed
@@ -869,7 +880,7 @@ sub makesessionfromphase {
     if ($ses =~ /^([0-9]+)-([0-9]+)$/) {
 	$lowses = $1;
 	$highses = $2;
-    } elsif ($ses eq "*") {
+    } elsif ($nses != 0 && $ses eq "*") {
     	$lowses = 1;
 	$highses = $nses;
     } elsif (isnumber($ses)) {
@@ -878,7 +889,7 @@ sub makesessionfromphase {
 	error("$ses not session number or range");
 	return;
     }
-    if ($lowses < 1 || $lowses > $highses || $highses > $nses) {
+    if ($lowses < 1 || $lowses > $highses || ($nses !=0 && $highses > $nses)) {
 	error("Sessions $lowses-$highses with $nses total sessions not possible");
 	return;
     }
@@ -931,11 +942,13 @@ sub makesessionfromphase {
 
 	#
 	# get session key, and split into left half and right half to put into bigdealx
+	# Check for variable number of sessions
 	#
-	my $this_seskey = $session_key{"$phase,$ses"};
+	my $key_sesnum = $nses==0 ? 0 : $ses;
+	my $this_seskey = $session_key{"$phase,$key_sesnum"};
 	my $skl = int ((length $this_seskey)/2);
-	my $seskeyleft = substr $this_seskey, 0, $skl;
-	my $seskeyright = substr $this_seskey, $skl;
+	my $sk_left = substr $this_seskey, 0, $skl;
+	my $sk_right = substr $this_seskey, $skl;
 
 	#
 	# delayed value is base64 encoded in case it contains weird characters
@@ -943,14 +956,17 @@ sub makesessionfromphase {
 	my $DVencoding = encode_base64($TrnDelayedValue);
 
 	print "Making file $sesfnamereal, session $sesdescrreal, brds $concat_low to $concat_high\n";
-	$command = join(' ', $bigdeal_prog,
-	    "-W", $seskeyleft,
-	    "-e", $seskeyright,
-	    "-e", $DVencoding,
-	    "-e", $reserve == 0 ? "original" : "reserve",
-	    "-p", $sesfnamereal,
-	    "-n", $real_seslen
-		    );
+	#
+	# Make the -e flag arg for BigDeal, now one -e arg instead of multiple
+	# This does not make a difference, BigDeal always concatenated all the -e flags anyhow
+	#
+	my $eflagarg = "";
+	$eflagarg .= $sk_right;
+	$eflagarg .= $DVencoding;
+	$eflagarg .= $reserve == 0 ? "original" : "reserve";
+	$eflagarg .= "ses$ses" if ($sesnum==0);
+	$command = join(' ', $bigdeal_prog, "-W", $sk_left,
+			"-e", $eflagarg, "-p", $sesfnamereal, "-n", $real_seslen);
 	#
 	# Run bigdeal command and check if nothing weird comes out
 	# Just counting for two lines now
@@ -1027,9 +1043,13 @@ sub addphase {
     $nsessions = promptfor("Number of sessions");
     return 0 if $nsessions =~ $pat_end;
 
-    if (!isnumber($nsessions) || $nsessions <= 0) {
-	warning("Should be a number(greater than zero)");
+    if (!isnumber($nsessions) || $nsessions < 0) {
+	warning("Should be a number(not less than zero)");
 	return 0;
+    }
+
+    if ($nsessions == 0) {
+	warning("Experimental feature: variable number of sessions");
     }
     $sesdigits = length $nsessions;	# Length of number of sessions for ##
 
@@ -1079,7 +1099,8 @@ sub addphase {
     $sesdescr =~ s/\://g;
 
     if ($nsessions != 1 && $sesdescr !~ /#/) {
-	$sesdescr .= " #/$nsessions";
+	$sesdescr .= " #";
+	$sesdescr .= "/$nsessions" unless $nsessions == 0;
 	print "session description changed to $sesdescr\n";
     }
 
