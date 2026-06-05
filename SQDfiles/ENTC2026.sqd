@@ -1,0 +1,8 @@
+# Description file of tournament for program SquareDeal 2.4
+#
+TN European National Team Championships 2026
+DI DJI1006
+# Description of phases of tournament
+# Per phase a line with SN nessions:nboards:filename:description
+SN 39:1-16,17-32:ENTC##:Round Robin #/39
+KH a83990c88e1988fccf23aefb07786e35511255a5e614c3adaa420b1fc577e1d3
