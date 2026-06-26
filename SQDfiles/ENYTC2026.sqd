@@ -1,0 +1,9 @@
+# Description file of tournament for program SquareDeal 2.6
+#
+TN European Youth Team Championships 2026
+DI DJI0307
+# Description of phases of tournament
+# Per phase a line with SN nessions:nboards:filename:description
+SN 26:1-14,15-28:ALLBUTU31RR##:All but U31  #/26
+SN 30:1-10,11-20,21-30:U31RR##:U31 #/30
+KH ba0328c9c61e48e89697aefe284166c4946ce614b4b4d0cd0e5f39dd52d83949
