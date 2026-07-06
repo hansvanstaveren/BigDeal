@@ -544,6 +544,19 @@ sub readtourn {
 	    $TrnName = $_;
 	}
 	elsif(s/^KH *//) {
+	    #
+	    # Do sanity check on keyhash
+	    # length, and characters
+	    #
+	    my $len = length;
+	    if ($len != 64) {
+		fatal("Keyhash length in file wrong: $len");
+		next;
+	    }
+	    if (/[^0-9a-f]/) {
+		fatal("Keyhash contains non hex character: $_");
+		next;
+	    }
 	    $TrnKeyHash = $_;
 	    $TrnPublished = 1;
 	}
@@ -586,6 +599,7 @@ sub writetourn {
     }
     if ($TrnPublished) {
 	print TRNFILE "KH $TrnKeyHash\n";
+	print TRNFILE "#\n# Never edit this file\n"
     } else {
 	print TRNFILE "#\n# Until published this file may be edited if so wished\n";
     }
