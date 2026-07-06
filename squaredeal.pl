@@ -461,7 +461,7 @@ sub readkeys {
     my ($nkeys, $keylen, $totalkeylen);
 
     unless (open(KEYFILE, "<:crlf", $fname)) {
-	error("Cannot open the file that should contain the keys ($fname)");
+	fatal("Cannot open the file that should contain the keys ($fname)");
 	return 0;
     }
     my $wholefile = "";
