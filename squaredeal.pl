@@ -48,6 +48,9 @@ $dsc_minor = 0;
 $bigdeal_prog = "bigdealx";
 $bigdeal_seedbits = 320;
 
+$keyhash_bits = 256;		# sha256 is used
+$keyhash_hexchars = $keyhash_bits/4;
+
 $sufdsc = "sqd";
 $sufkey = "sqk";
 
@@ -549,7 +552,7 @@ sub readtourn {
 	    # length, and characters
 	    #
 	    my $len = length;
-	    if ($len != 64) {
+	    if ($len != $keyhash_hexchars) {
 		fatal("Keyhash length in file wrong: $len");
 		next;
 	    }
@@ -640,6 +643,9 @@ sub writekeys {
     # Compute hash to store in .sqd file
     #
     my $result = sha256_hex($keys);
+    if (length($result) != $keyhash_hexchars) {
+	fatal("Internal error, hash wrong length");
+    }
     return $result;
 }
 
