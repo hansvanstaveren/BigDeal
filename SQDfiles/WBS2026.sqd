@@ -1,0 +1,28 @@
+# Description file of tournament for program SquareDeal 2.7
+#
+TN World Bridge Series 2026
+DI DJI100826
+# Description of phases of tournament
+# Per phase a line with SN nessions:nboards:filename:description
+SN 8:1-14,15-28:MXTSWISS#:Mixed Teams Swiss #/8
+SN 4:1-14,15-28:MXTR32#:Mixed Teams Round of 32 #/4
+SN 4:1-14,15-28:MXTR16#:Mixed Teams Round of 16 #/4
+SN 4:1-14,15-28:MXTQF#:Mixed Teams QF #/4
+SN 4:1-14,15-28:MXTSF#:Mixed Teams SF #/4
+SN 4:1-14,15-28:MXTFIN#:Mixed Teams FIN #/4
+SN 4:1-14,15-28:OTR64#:Opoen Teams R64 #/4
+SN 8:1-14,15-28:OTSWISS#:Open Teams Swiss #/8
+SN 4:1-14,15-28:OTR32#:Open Teams R32 #/4
+SN 4:1-14,15-28:OTR16#:Open Teams R16 #/4
+SN 4:1-14,15-28:OTQF#:Open Teams QF #/4
+SN 4:1-14,15-28:OTSF#:Open Teams SF #/4
+SN 4:1-14,15-28:OTFIN#:Open Teams FIN #/4
+SN 6:1-16,17-32:MXPQUAL#:Mixed Pairs Qual #/6
+SN 6:1-16,17-32:MXPSF#:Mixed Pairs SF #/6
+SN 3:1-16,17-32,1-18:MXPFIN#:Mixed Pairs FIN #/3
+SN 6:1-16,17-32:OPPQUAL#:Open Pairs Qual #/6
+SN 6:1-16,17-32:OPPSF#:Open Pairs SF #/6
+SN 6:1-16,17-32,1-20,1-16,17-32,1-18:OPFIN#:Open Pairs Final #/6
+KH 7532a2c81ffb414259f7c202c7f69ad1584c72ab7205e7d22a3f9924a39e35c9
+#
+# Never edit this file
